@@ -8,7 +8,7 @@ Each model or coding tool received the exact same prompt — build an interactiv
 
 ## Live Demo
 
-**[View the comparison site](https://nmarkman.github.io/llm-one-shot-physics-sims/)**
+**[View the comparison site](https://llm-one-shot-physics-sims.vercel.app)**
 
 ## Models & Tools Tested
 
