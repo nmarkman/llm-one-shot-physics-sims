@@ -419,6 +419,22 @@
   .type-badge.model { background: rgba(108, 99, 255, 0.15); color: #8b83ff; }
   .type-badge.tool { background: rgba(78, 205, 196, 0.15); color: #4ecdc4; }
 
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 1.5rem 2rem;
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+
+  .footer a {
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  .footer a:hover { text-decoration: underline; }
+
   @media (max-width: 768px) {
     .header { flex-direction: column; align-items: flex-start; gap: 0.75rem; padding: 1.25rem 1.5rem; }
     .header h1 { font-size: 1rem; }
@@ -535,6 +551,10 @@
     <table class="entry-table" id="entry-table"></table>
   </div>
 </div>
+</div>
+
+<div class="footer">
+  Created by <a href="https://www.nickmarkman.com" target="_blank">Nick Markman</a>
 </div>
 
 <script>
