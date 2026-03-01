@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Polygon Physics — Sonnet 4-6</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0a0f;
+    overflow: hidden;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: #cdd;
+  }
+
+  canvas {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+  }
+
+  /* === CONTROL PANEL === */
+  #panel {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    width: 250px;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: rgba(10, 15, 28, 0.82);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(100, 200, 255, 0.18);
+    border-radius: 14px;
+    padding: 12px 10px 14px;
+    z-index: 100;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(100,200,255,0.3) transparent;
+  }
+  #panel::-webkit-scrollbar { width: 4px; }
+  #panel::-webkit-scrollbar-thumb { background: rgba(100,200,255,0.3); border-radius: 4px; }
+
+  #panel h2 {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(100,200,255,0.7);
+    text-align: center;
+    margin-bottom: 10px;
+  }
+
+  /* sections */
+  .section {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(100,200,255,0.1);
+    border-radius: 10px;
+    margin-bottom: 8px;
+    transition: border-color 0.2s;
+    overflow: hidden;
+  }
+  .section:hover { border-color: rgba(100,200,255,0.28); }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(100,200,255,0.9);
+    letter-spacing: 0.5px;
+  }
+  .chevron {
+    font-size: 10px;
+    transition: transform 0.25s;
+    color: rgba(100,200,255,0.5);
+  }
+  .section.collapsed .chevron { transform: rotate(-90deg); }
+  .section-body {
+    padding: 6px 10px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .section.collapsed .section-body { display: none; }
+
+  /* rows */
+  .row {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    position: relative;
+  }
+  .row-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: rgba(180,220,240,0.7);
+  }
+  .row-label span.val {
+    color: rgba(100,200,255,0.9);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* sliders */
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    background: rgba(100,200,255,0.15);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgba(100,200,255,0.9);
+    box-shadow: 0 0 8px rgba(100,200,255,0.7), 0 0 2px rgba(100,200,255,1);
+    cursor: grab;
+    transition: transform 0.1s;
+  }
+  input[type=range]::-webkit-slider-thumb:active { cursor: grabbing; transform: scale(1.2); }
+  input[type=range]::-moz-range-thumb {
+    width: 14px; height: 14px; border-radius: 50%; border: none;
+    background: rgba(100,200,255,0.9);
+    box-shadow: 0 0 8px rgba(100,200,255,0.7);
+    cursor: grab;
+  }
+
+  .sub-label {
+    font-size: 10px;
+    color: rgba(100,200,255,0.5);
+    text-align: center;
+    margin-top: -2px;
+  }
+
+  /* toggle switch */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    color: rgba(180,220,240,0.7);
+  }
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 34px;
+    height: 18px;
+  }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider-sw {
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0.1);
+    border-radius: 18px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .slider-sw::before {
+    content: '';
+    position: absolute;
+    width: 12px; height: 12px;
+    left: 3px; top: 3px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.2s;
+  }
+  input:checked + .slider-sw { background: rgba(100,200,255,0.6); }
+  input:checked + .slider-sw::before { transform: translateX(16px); }
+
+  /* explode button */
+  #btnExplode {
+    width: 100%;
+    padding: 7px;
+    background: linear-gradient(135deg, rgba(100,200,255,0.15), rgba(80,140,255,0.15));
+    border: 1px solid rgba(100,200,255,0.4);
+    border-radius: 8px;
+    color: rgba(100,200,255,0.95);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+  }
+  #btnExplode:hover {
+    background: linear-gradient(135deg, rgba(100,200,255,0.28), rgba(80,140,255,0.28));
+    box-shadow: 0 0 12px rgba(100,200,255,0.35);
+  }
+  #btnExplode:active { transform: scale(0.96); }
+
+  /* tooltip */
+  #tooltip {
+    position: fixed;
+    z-index: 9999;
+    background: rgba(10,15,28,0.95);
+    border: 1px solid rgba(100,200,255,0.35);
+    border-radius: 7px;
+    padding: 5px 9px;
+    font-size: 11px;
+    color: rgba(200,230,255,0.9);
+    pointer-events: none;
+    max-width: 180px;
+    line-height: 1.4;
+    display: none;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+  }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="panel">
+  <h2>Polygon Physics</h2>
+
+  <!-- SHAPE -->
+  <div class="section" id="sec-shape">
+    <div class="section-header" onclick="toggleSection('sec-shape')">
+      Shape <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="row" data-tip="Number of sides on the spinning polygon frame">
+        <div class="row-label"><span>Sides</span><span class="val" id="lbl-sides">8</span></div>
+        <input type="range" id="sl-sides" min="3" max="20" value="8">
+        <div class="sub-label" id="shape-name">Octagon</div>
+      </div>
+      <div class="row" data-tip="Spin speed of the polygon. Negative values reverse direction.">
+        <div class="row-label"><span>Spin Speed</span><span class="val" id="lbl-spin">0.5×</span></div>
+        <input type="range" id="sl-spin" min="-3" max="3" step="0.05" value="0.5">
+      </div>
+    </div>
+  </div>
+
+  <!-- BALLS -->
+  <div class="section" id="sec-balls">
+    <div class="section-header" onclick="toggleSection('sec-balls')">
+      Balls <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="row" data-tip="Total number of balls in the simulation">
+        <div class="row-label"><span>Count</span><span class="val" id="lbl-count">40</span></div>
+        <input type="range" id="sl-count" min="1" max="200" value="40">
+      </div>
+      <div class="row" data-tip="Extra random radius added on top of the base size (6px). Higher = more size variety.">
+        <div class="row-label"><span>Size Variation</span><span class="val" id="lbl-sizevar">12</span></div>
+        <input type="range" id="sl-sizevar" min="0" max="40" value="12">
+      </div>
+      <div class="row" data-tip="How bouncy wall collisions are. Values above 1 add energy on each bounce.">
+        <div class="row-label"><span>Bounciness</span><span class="val" id="lbl-bounce">0.72</span></div>
+        <input type="range" id="sl-bounce" min="0" max="1.2" step="0.01" value="0.72">
+      </div>
+      <div class="toggle-row" data-tip="When off, balls pass through each other.">
+        <span>Ball Collisions</span>
+        <label class="switch">
+          <input type="checkbox" id="tog-collisions" checked>
+          <span class="slider-sw"></span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHYSICS -->
+  <div class="section" id="sec-physics">
+    <div class="section-header" onclick="toggleSection('sec-physics')">
+      Physics <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="row" data-tip="Direction gravity pulls. 0°=down, 90°=left, 180°=up, 270°=right.">
+        <div class="row-label"><span>Gravity Angle</span><span class="val" id="lbl-gravang">↓ 0°</span></div>
+        <input type="range" id="sl-gravang" min="0" max="360" value="0">
+      </div>
+      <div class="row" data-tip="Strength of gravity. 0 = weightless.">
+        <div class="row-label"><span>Gravity Strength</span><span class="val" id="lbl-gravstr">600</span></div>
+        <input type="range" id="sl-gravstr" min="0" max="1500" value="600">
+      </div>
+      <div class="row" data-tip="Scales simulation speed. 0 = paused, 3× = triple speed.">
+        <div class="row-label"><span>Time Scale</span><span class="val" id="lbl-timescale">1.0×</span></div>
+        <input type="range" id="sl-timescale" min="0" max="3" step="0.05" value="1">
+      </div>
+    </div>
+  </div>
+
+  <!-- EFFECTS -->
+  <div class="section" id="sec-effects">
+    <div class="section-header" onclick="toggleSection('sec-effects')">
+      Effects <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="toggle-row" data-tip="Draws a translucent overlay each frame instead of clearing, leaving motion trails.">
+        <span>Motion Trails</span>
+        <label class="switch">
+          <input type="checkbox" id="tog-trails">
+          <span class="slider-sw"></span>
+        </label>
+      </div>
+      <button id="btnExplode" data-tip="Applies a random explosion impulse to every ball.">💥 EXPLODE</button>
+    </div>
+  </div>
+</div>
+
+<div id="tooltip"></div>
+
+<script src="sim.js"></script>
+</body>
+</html>

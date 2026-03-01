@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Physics Simulation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 100vw;
+            height: 100vh;
+            background: #0a0a0f;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .control-panel {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 300px;
+            background: rgba(15, 15, 25, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(100, 200, 255, 0.2);
+            border-radius: 16px;
+            padding: 20px;
+            z-index: 100;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .control-panel::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .control-panel::-webkit-scrollbar-track {
+            background: rgba(100, 200, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        .control-panel::-webkit-scrollbar-thumb {
+            background: rgba(100, 200, 255, 0.3);
+            border-radius: 3px;
+        }
+
+        .control-panel::-webkit-scrollbar-thumb:hover {
+            background: rgba(100, 200, 255, 0.5);
+        }
+
+        .section {
+            margin-bottom: 16px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 8px;
+            margin: -8px -8px 0 -8px;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+
+        .section-header:hover {
+            background: rgba(100, 200, 255, 0.1);
+        }
+
+        .section-title {
+            color: rgba(100, 200, 255, 0.9);
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            flex: 1;
+        }
+
+        .section-toggle {
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(100, 200, 255, 0.7);
+            font-size: 12px;
+            transition: transform 0.2s;
+        }
+
+        .section-toggle.collapsed {
+            transform: rotate(-90deg);
+        }
+
+        .section-content {
+            margin-top: 12px;
+            overflow: hidden;
+            max-height: 1000px;
+            transition: max-height 0.3s ease, opacity 0.3s ease;
+            opacity: 1;
+        }
+
+        .section-content.collapsed {
+            max-height: 0;
+            opacity: 0;
+        }
+
+        .control-group {
+            margin-bottom: 14px;
+        }
+
+        .control-label {
+            display: flex;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .control-label-text {
+            color: rgba(200, 200, 220, 0.8);
+            font-size: 12px;
+            flex: 1;
+        }
+
+        .control-value {
+            color: rgba(100, 200, 255, 0.9);
+            font-size: 12px;
+            font-weight: 500;
+            min-width: 35px;
+            text-align: right;
+        }
+
+        .control-label-text.has-tooltip {
+            cursor: help;
+            border-bottom: 1px dotted rgba(100, 200, 255, 0.4);
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 5px;
+            border-radius: 3px;
+            background: rgba(100, 200, 255, 0.1);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(100, 200, 255, 0.9), rgba(150, 220, 255, 0.9));
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(100, 200, 255, 0.4);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(100, 200, 255, 0.9), rgba(150, 220, 255, 0.9));
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(100, 200, 255, 0.4);
+            border: none;
+        }
+
+        .toggle-switch {
+            display: inline-flex;
+            align-items: center;
+            width: 40px;
+            height: 22px;
+            background: rgba(100, 200, 255, 0.2);
+            border-radius: 11px;
+            padding: 2px;
+            cursor: pointer;
+            transition: background 0.3s;
+            border: 1px solid rgba(100, 200, 255, 0.3);
+        }
+
+        .toggle-switch.active {
+            background: rgba(100, 200, 255, 0.5);
+        }
+
+        .toggle-switch-thumb {
+            width: 18px;
+            height: 18px;
+            background: #0a0a0f;
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+
+        .toggle-switch.active .toggle-switch-thumb {
+            transform: translateX(18px);
+        }
+
+        button {
+            width: 100%;
+            padding: 8px 12px;
+            background: rgba(100, 200, 255, 0.2);
+            border: 1px solid rgba(100, 200, 255, 0.4);
+            border-radius: 8px;
+            color: rgba(100, 200, 255, 0.9);
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        button:hover {
+            background: rgba(100, 200, 255, 0.35);
+            border-color: rgba(100, 200, 255, 0.6);
+            box-shadow: 0 0 12px rgba(100, 200, 255, 0.3);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .tooltip {
+            position: fixed;
+            background: rgba(15, 15, 25, 0.95);
+            border: 1px solid rgba(100, 200, 255, 0.4);
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: rgba(200, 200, 220, 0.9);
+            font-size: 11px;
+            line-height: 1.4;
+            pointer-events: none;
+            z-index: 200;
+            max-width: 200px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+            display: none;
+        }
+
+        .tooltip.visible {
+            display: block;
+        }
+
+        .tooltip::before {
+            content: '';
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: rgba(100, 200, 255, 0.4);
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+
+    <div class="control-panel">
+        <!-- Shape Section -->
+        <div class="section">
+            <div class="section-header" data-section="shape">
+                <span class="section-title">Shape</span>
+                <span class="section-toggle">▶</span>
+            </div>
+            <div class="section-content">
+                <div class="control-group">
+                    <div class="control-label">
+                        <span class="control-label-text has-tooltip" data-tooltip="Number of sides (3-20)">Sides</span>
+                        <span class="control-value" id="sidesValue">8</span>
+                    </div>
+                    <input type="range" id="sidesSlider" min="3" max="20" value="8">
+                </div>
+                <div class="control-group">
+                    <div class="control-label">
+                        <span class="control-label-text has-tooltip" data-tooltip="Rotation speed (-3 to 3 rad/s)">Spin Speed</span>
+                        <span class="control-value" id="spinSpeedValue">1.0</span>
+                    </div>
+                    <input type="range" id="spinSpeedSlider" min="-3" max="3" step="0.1" value="1.0">
+                </div>
+            </div>
+        </div>
+
+        <!-- Balls Section -->
+        <div class="section">
+            <div class="section-header" data-section="balls">
+                <span class="section-title">Balls</span>
+                <span class="section-toggle">▶</span>
+            </div>
+            <div class="section-content">
+                <div class="control-group">
+                    <div class="control-label">
+                        <span class="control-label-text has-tooltip" data-tooltip="Number of balls (1-200)">Count</span>
+                        <span class="control-value" id="ballCountValue">40</span>
+                    </div>
+                    <input type="range" id="ballCountSlider" min="1" max="200" value="40">
+                </div>
+                <div class="control-group">
+                    <div class="control-label">
+                        <span class="control-label-text has-tooltip" data-tooltip="Size variation (0-40%)">Size Var</span>
+                        <span class="control-value" id="sizeVarValue">15</span>
+                    </div>
+                    <input type="range" id="sizeVarSlider" min="0" max="40" value="15">
+                </div>
+                <div class="control-group">
+                    <div class="control-label">
+                        <span class="control-label-text has-tooltip" data-tooltip="Bounce amount (0-1.2)">Bounciness</span>
+                        <span class="control-value" id="bouncyValue">0.8</span>
+                    </div>
+                    <input type="range" id="bouncySlider" min="0" max="1.2" step="0.05" value="0.8">
+                </div>
+                <div class="control-group">
+                    <div class="control-label">
+                        <span class="control-label-text has-tooltip" data-tooltip="Ball-to-ball collisions">Collisions</span>
+                        <div class="toggle-switch" id="collisionsToggle">
+                            <div class="toggle-switch-thumb"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Physics Section -->
+        <div class="section">
+            <div class="section-header" data-section="physics">
+                <span class="section-title">Physics</span>
+                <span class="section-toggle">▶</span>
+            </div>
+            <div class="section-content">
+                <div class="control-group">
+                    <div class="control-label">
+                        <span class="control-label-text has-tooltip" data-tooltip="Gravity direction (0-360°)">Gravity Angle</span>
+                        <span class="control-value" id="gravAngleValue">90</span>
+                    </div>
+                    <input type="range" id="gravAngleSlider" min="0" max="360" step="5" value="90">
+                </div>
+                <div class="control-group">
+                    <div class="control-label">
+                        <span class="control-label-text has-tooltip" data-tooltip="Gravity strength (0-1500)">Gravity</span>
+                        <span class="control-value" id="gravStrengthValue">400</span>
+                    </div>
+                    <input type="range" id="gravStrengthSlider" min="0" max="1500" step="10" value="400">
+                </div>
+                <div class="control-group">
+                    <div class="control-label">
+                        <span class="control-label-text has-tooltip" data-tooltip="Simulation speed (0-3x)">Time Scale</span>
+                        <span class="control-value" id="timeScaleValue">1.0</span>
+                    </div>
+                    <input type="range" id="timeScaleSlider" min="0" max="3" step="0.1" value="1.0">
+                </div>
+            </div>
+        </div>
+
+        <!-- Effects Section -->
+        <div class="section">
+            <div class="section-header" data-section="effects">
+                <span class="section-title">Effects</span>
+                <span class="section-toggle">▶</span>
+            </div>
+            <div class="section-content">
+                <div class="control-group">
+                    <div class="control-label">
+                        <span class="control-label-text has-tooltip" data-tooltip="Motion trails">Trails</span>
+                        <div class="toggle-switch active" id="trailsToggle">
+                            <div class="toggle-switch-thumb"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <button id="explodeBtn">Explode</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tooltip" id="tooltip"></div>
+
+    <script src="sim.js"></script>
+</body>
+</html>
