@@ -436,15 +436,70 @@
   .footer a:hover { text-decoration: underline; }
 
   @media (max-width: 768px) {
-    .header { flex-direction: column; align-items: flex-start; gap: 0.75rem; padding: 1.25rem 1.5rem; }
-    .header h1 { font-size: 1rem; }
+    .header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+      padding: 1rem 1rem;
+    }
+    .header h1 { font-size: 0.95rem; }
     .header-right { display: none; }
-    .viewport { flex-direction: column; height: auto; min-height: unset; }
-    .sim-pane { height: 60vh; border-right: none; border-bottom: 1px solid var(--border); }
-    .controls { gap: 0.4rem; padding: 0.75rem 1rem; }
+
+    .controls {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.5rem;
+      padding: 0.6rem 1rem;
+    }
+    .controls-left {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      gap: 0.35rem;
+      scrollbar-width: none;
+    }
+    .controls-left::-webkit-scrollbar { display: none; }
     .controls-right { width: 100%; justify-content: space-between; }
-    .about { grid-template-columns: 1fr; padding: 2rem 1.5rem; }
+    .model-btn {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.75rem;
+      white-space: nowrap;
+      flex-shrink: 0;
+      min-height: 38px;
+    }
     .sep { display: none; }
+    .standalone-btn { font-size: 0.75rem; padding: 0.45rem 0.7rem; }
+    .view-toggle button { padding: 0.45rem 0.75rem; }
+
+    .viewport {
+      flex-direction: column;
+      height: calc(100vh - 140px);
+      min-height: 400px;
+    }
+    .sim-pane {
+      height: 100%;
+      min-height: 0;
+      flex: 1;
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+    }
+    .sim-pane .pane-label { padding: 0.35rem 0.75rem; font-size: 0.7rem; }
+
+    .about { grid-template-columns: 1fr; padding: 1.5rem 1rem; gap: 1.5rem; }
+    .about h2 { font-size: 1rem; }
+    .about p, .about li { font-size: 0.85rem; }
+
+    .entry-table { font-size: 0.75rem; }
+    .entry-table th, .entry-table td { padding: 0.35rem 0.4rem; }
+    .type-badge { font-size: 0.6rem; }
+
+    .footer { padding: 1rem; font-size: 0.75rem; }
+  }
+
+  @media (max-width: 380px) {
+    .header h1 { font-size: 0.85rem; }
+    .model-btn { padding: 0.45rem 0.6rem; font-size: 0.7rem; }
+    .viewport { height: calc(100vh - 130px); }
   }
 </style>
 </head>
@@ -651,7 +706,7 @@ function render() {
     }
 
     const iframe = document.createElement('iframe');
-    iframe.src = model.path;
+    iframe.src = model.path + '?embed=1';
     iframe.setAttribute('loading', 'lazy');
 
     pane.appendChild(iframe);

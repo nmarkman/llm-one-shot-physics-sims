@@ -129,6 +129,23 @@
   }
   #tooltip.visible { opacity: 1; }
 </style>
+
+<style>
+  /* Mobile embed mode — hide panel when inside parent iframe */
+  @media (max-width: 768px) {
+    .embed-mode #panel,
+    .embed-mode #controls,
+    .embed-mode #controlPanel,
+    .embed-mode .controls,
+    .embed-mode .sidebar { display: none !important; }
+    .embed-mode canvas { width: 100vw !important; height: 100vh !important; }
+  }
+</style>
+<script>
+  if (new URLSearchParams(location.search).has('embed')) {
+    document.documentElement.classList.add('embed-mode');
+  }
+</script>
 </head>
 <body>
 <canvas id="c"></canvas>
