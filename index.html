@@ -10,7 +10,7 @@
 
   :root {
     --bg: #0a0a0f;
-    --surface: #13131a;
+    --surface: #111118;
     --surface-2: #1a1a24;
     --border: #2a2a3a;
     --text: #e8e8ed;
@@ -29,36 +29,69 @@
 
   /* Header */
   .header {
-    text-align: center;
-    padding: 3rem 2rem 2rem;
+    padding: 2rem 2rem 1.5rem;
     border-bottom: 1px solid var(--border);
-    background: linear-gradient(180deg, rgba(108, 99, 255, 0.06) 0%, transparent 100%);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    min-width: 0;
+  }
+
+  .header-icon {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
   }
 
   .header h1 {
-    font-size: 2.2rem;
+    font-size: 1.15rem;
     font-weight: 700;
-    letter-spacing: -0.03em;
-    margin-bottom: 0.5rem;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
   }
 
   .header h1 span { color: var(--accent); }
 
-  .header p {
-    color: var(--text-muted);
-    font-size: 1.05rem;
-    max-width: 640px;
-    margin: 0 auto;
-    line-height: 1.6;
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
   }
+
+  .header-link {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.8rem;
+    font-weight: 500;
+    padding: 0.35rem 0.7rem;
+    border-radius: 5px;
+    transition: color 0.15s;
+  }
+
+  .header-link:hover { color: var(--text); }
+
+  .gh-link {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .gh-link svg { width: 16px; height: 16px; fill: currentColor; }
 
   /* Controls bar */
   .controls {
     display: flex;
     align-items: center;
-    justify-content: center;
     gap: 0.75rem;
-    padding: 1rem 2rem;
+    padding: 0.75rem 2rem;
     border-bottom: 1px solid var(--border);
     background: var(--surface);
     flex-wrap: wrap;
@@ -67,8 +100,24 @@
     z-index: 100;
   }
 
+  .controls-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .controls-right {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
+  }
+
   .controls label {
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: var(--text-muted);
@@ -76,12 +125,12 @@
   }
 
   .model-btn {
-    padding: 0.45rem 1rem;
-    border-radius: 6px;
+    padding: 0.4rem 0.85rem;
+    border-radius: 5px;
     border: 1px solid var(--border);
-    background: var(--surface-2);
-    color: var(--text);
-    font-size: 0.85rem;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.8rem;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.15s ease;
@@ -89,48 +138,88 @@
   }
 
   .model-btn:hover {
-    border-color: var(--accent);
-    background: rgba(108, 99, 255, 0.1);
+    color: var(--text);
+    border-color: #444;
   }
 
   .model-btn.active {
     border-color: var(--accent);
     background: var(--accent);
     color: #fff;
-    box-shadow: 0 0 12px var(--accent-glow);
+  }
+
+  .sep {
+    width: 1px;
+    height: 20px;
+    background: var(--border);
+    margin: 0 0.25rem;
   }
 
   .view-toggle {
-    margin-left: 1.5rem;
     display: flex;
-    gap: 0.25rem;
-    background: var(--surface-2);
-    border-radius: 6px;
-    border: 1px solid var(--border);
-    overflow: hidden;
+    gap: 0.15rem;
+    background: rgba(255,255,255,0.04);
+    border-radius: 5px;
+    padding: 2px;
   }
 
   .view-toggle button {
-    padding: 0.45rem 0.85rem;
+    padding: 0.35rem 0.7rem;
     border: none;
+    border-radius: 4px;
     background: transparent;
     color: var(--text-muted);
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.15s ease;
   }
 
+  .view-toggle button:hover { color: var(--text); }
+
   .view-toggle button.active {
-    background: var(--accent);
-    color: #fff;
+    background: var(--surface-2);
+    color: var(--text);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+
+  .standalone-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.85rem;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .standalone-btn:hover {
+    color: var(--text);
+    border-color: #444;
+    background: rgba(255,255,255,0.03);
+  }
+
+  .standalone-btn svg {
+    width: 13px;
+    height: 13px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
 
   /* Sim viewport */
   .viewport {
     display: flex;
     flex: 1;
-    height: calc(100vh - 160px);
+    height: calc(100vh - 120px);
     min-height: 500px;
   }
 
@@ -146,13 +235,10 @@
   .sim-pane:last-child { border-right: none; }
 
   .sim-pane .pane-label {
-    padding: 0.5rem 1rem;
-    background: var(--surface);
+    padding: 0.4rem 1rem;
+    background: var(--surface-2);
     border-bottom: 1px solid var(--border);
     font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
     color: var(--text-muted);
     display: flex;
     align-items: center;
@@ -160,20 +246,9 @@
   }
 
   .sim-pane .pane-label .model-tag {
-    color: var(--accent);
-    font-weight: 700;
+    color: var(--text);
+    font-weight: 600;
   }
-
-  .sim-pane .pane-label .open-link {
-    margin-left: auto;
-    color: var(--text-muted);
-    text-decoration: none;
-    font-size: 0.7rem;
-    opacity: 0.6;
-    transition: opacity 0.15s;
-  }
-
-  .sim-pane .pane-label .open-link:hover { opacity: 1; color: var(--accent); }
 
   .sim-pane iframe {
     flex: 1;
@@ -209,30 +284,28 @@
     gap: 2.5rem;
   }
 
-  .about-col { }
-
   .about-col.full { grid-column: 1 / -1; }
 
   .about h2 {
-    font-size: 1.3rem;
-    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    margin-bottom: 0.75rem;
     font-weight: 700;
   }
 
   .about p, .about li {
     color: var(--text-muted);
     line-height: 1.7;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
   }
 
   .about ul {
     list-style: none;
-    margin: 1rem 0;
+    margin: 0.75rem 0;
   }
 
   .about li {
-    padding: 0.4rem 0;
-    padding-left: 1.2rem;
+    padding: 0.35rem 0;
+    padding-left: 1rem;
     position: relative;
   }
 
@@ -240,9 +313,9 @@
     content: '';
     position: absolute;
     left: 0;
-    top: 0.85rem;
-    width: 6px;
-    height: 6px;
+    top: 0.8rem;
+    width: 5px;
+    height: 5px;
     border-radius: 50%;
     background: var(--accent);
   }
@@ -254,34 +327,79 @@
     font-size: 0.85em;
   }
 
-  .about a {
+  .about a { color: var(--accent); text-decoration: none; }
+  .about a:hover { text-decoration: underline; }
+
+  /* Prompt display */
+  details summary {
+    cursor: pointer;
     color: var(--accent);
-    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.85rem;
+    margin-top: 1rem;
   }
 
-  .about a:hover { text-decoration: underline; }
+  details summary:hover { text-decoration: underline; }
+
+  .prompt-block {
+    margin-top: 0.75rem;
+    padding: 1.25rem 1.5rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 0.78rem;
+    line-height: 1.7;
+    color: var(--text-muted);
+    max-height: 420px;
+    overflow-y: auto;
+  }
+
+  .prompt-block .section-head {
+    color: var(--text);
+    font-weight: 600;
+    display: block;
+    margin-top: 1rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .prompt-block .section-head:first-child { margin-top: 0; }
+
+  .prompt-block .prompt-item {
+    display: block;
+    padding-left: 1.25rem;
+    position: relative;
+    margin: 0.2rem 0;
+  }
+
+  .prompt-block .prompt-item::before {
+    content: '- ';
+    position: absolute;
+    left: 0.25rem;
+    color: #555;
+  }
 
   /* Entry table */
   .entry-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     margin-top: 0.75rem;
   }
 
   .entry-table th {
     text-align: left;
-    padding: 0.5rem 0.75rem;
+    padding: 0.45rem 0.65rem;
     border-bottom: 1px solid var(--border);
     color: var(--text-muted);
     font-weight: 600;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     text-transform: uppercase;
     letter-spacing: 0.06em;
   }
 
   .entry-table td {
-    padding: 0.5rem 0.75rem;
+    padding: 0.45rem 0.65rem;
     border-bottom: 1px solid rgba(42, 42, 58, 0.5);
     color: var(--text-muted);
   }
@@ -290,9 +408,9 @@
 
   .type-badge {
     display: inline-block;
-    padding: 0.15rem 0.5rem;
-    border-radius: 4px;
-    font-size: 0.7rem;
+    padding: 0.12rem 0.45rem;
+    border-radius: 3px;
+    font-size: 0.65rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -302,28 +420,52 @@
   .type-badge.tool { background: rgba(78, 205, 196, 0.15); color: #4ecdc4; }
 
   @media (max-width: 768px) {
-    .header h1 { font-size: 1.5rem; }
+    .header { flex-direction: column; align-items: flex-start; gap: 0.75rem; padding: 1.25rem 1.5rem; }
+    .header h1 { font-size: 1rem; }
+    .header-right { display: none; }
     .viewport { flex-direction: column; height: auto; min-height: unset; }
     .sim-pane { height: 60vh; border-right: none; border-bottom: 1px solid var(--border); }
-    .view-toggle { margin-left: 0; }
-    .controls { gap: 0.4rem; }
-    .about { grid-template-columns: 1fr; }
+    .controls { gap: 0.4rem; padding: 0.75rem 1rem; }
+    .controls-right { width: 100%; justify-content: space-between; }
+    .about { grid-template-columns: 1fr; padding: 2rem 1.5rem; }
+    .sep { display: none; }
   }
 </style>
 </head>
 <body>
 
 <div class="header">
-  <h1>LLM <span>One-Shot</span> Physics Sims</h1>
-  <p>The same prompt, given once to different LLMs. No iteration, no follow-ups — just a single shot at building an interactive physics simulator. Compare the results.</p>
+  <div class="header-left">
+    <svg class="header-icon" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="16,2 29,9 29,23 16,30 3,23 3,9" fill="none" stroke="#6c63ff" stroke-width="1.5" opacity="0.6"/>
+      <circle cx="12" cy="14" r="3" fill="#ff6b6b" opacity="0.9"/>
+      <circle cx="20" cy="18" r="2.5" fill="#4ecdc4" opacity="0.9"/>
+      <circle cx="16" cy="10" r="2" fill="#ffe66d" opacity="0.9"/>
+    </svg>
+    <h1>LLM <span>One-Shot</span> Physics Sims</h1>
+  </div>
+  <div class="header-right">
+    <a class="header-link gh-link" href="https://github.com/nmarkman/llm-one-shot-physics-sims" target="_blank">
+      <svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      GitHub
+    </a>
+  </div>
 </div>
 
 <div class="controls">
-  <label>Models & Tools:</label>
-  <div id="model-buttons"></div>
-  <div class="view-toggle">
-    <button data-view="single" class="active">Single</button>
-    <button data-view="compare">Compare</button>
+  <div class="controls-left">
+    <div id="model-buttons"></div>
+  </div>
+  <div class="controls-right">
+    <div class="view-toggle">
+      <button data-view="single" class="active">Single</button>
+      <button data-view="compare">Compare</button>
+    </div>
+    <div class="sep"></div>
+    <a class="standalone-btn" id="standalone-link" href="#" target="_blank">
+      Open standalone
+      <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+    </a>
   </div>
 </div>
 
@@ -333,43 +475,47 @@
 <div class="about">
   <div class="about-col full">
     <h2>About this project</h2>
-    <p>Each model or tool received the exact same prompt — build an interactive physics simulator with bouncing balls inside a rotating polygon. Every result here is the raw, unedited output. One prompt, one response, no refinement.</p>
-    <p style="margin-top: 0.75rem;">It's a surprisingly revealing test. The prompt is complex enough to expose real differences in how models reason about physics, structure code, and design interfaces — but simple enough that every model can produce something functional.</p>
-    <details style="margin-top: 1rem;">
-      <summary style="cursor: pointer; color: var(--accent); font-weight: 600; font-size: 0.9rem;">View the exact prompt used</summary>
-      <pre style="margin-top: 0.75rem; padding: 1rem; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; font-size: 0.8rem; line-height: 1.6; color: var(--text-muted); overflow-x: auto; white-space: pre-wrap; max-height: 400px; overflow-y: auto;">Create a single-page physics simulation web app (vanilla HTML/CSS/JS, no frameworks) with two files: index.html and sim.js.
+    <p>Each model or tool received the exact same prompt — build an interactive physics simulator with bouncing balls inside a rotating polygon. Every result is the raw, unedited output. One prompt, one response, no refinement.</p>
+    <p style="margin-top: 0.5rem;">The prompt is complex enough to expose real differences in how models reason about physics, structure code, and design interfaces — but simple enough that every model produces something functional.</p>
+    <details>
+      <summary>View the exact prompt used</summary>
+      <div class="prompt-block">
+        <span class="section-head">Setup</span>
+        <span class="prompt-item">Create a single-page physics simulation web app (vanilla HTML/CSS/JS, no frameworks) with two files: index.html and sim.js</span>
 
-The simulation:
+        <span class="section-head">Simulation</span>
+        <span class="prompt-item">A regular polygon frame (default octagon) spins continuously in the center of a dark canvas</span>
+        <span class="prompt-item">40 multicolored balls of varying sizes bounce inside the polygon, affected by gravity</span>
+        <span class="prompt-item">Full 2D physics: gravity, wall collisions that account for the polygon's rotational velocity at the contact point (spinning walls should drag/fling balls), mass-based ball-to-ball collisions with separation and impulse resolution, and velocity damping</span>
+        <span class="prompt-item">Use proper edge-based collision detection: compute the inward normal for each polygon edge, use signed distance to detect penetration, and push balls inward — NOT a simple circular distance-from-center check, which breaks on shapes with few sides like triangles</span>
+        <span class="prompt-item">Run physics in 5 substeps per frame for stability, and re-constrain balls inside the polygon after ball-ball collision resolution to prevent escape</span>
+        <span class="prompt-item">Spawn balls using the polygon's apothem (inscribed radius), not the circumradius, so they start inside any shape</span>
 
-A regular polygon frame (default octagon) spins continuously in the center of a dark canvas
-40 multicolored balls of varying sizes bounce inside the polygon, affected by gravity
-Full 2D physics: gravity, wall collisions that account for the polygon's rotational velocity at the contact point (spinning walls should drag/fling balls), mass-based ball-to-ball collisions with separation and impulse resolution, and velocity damping
-Use proper edge-based collision detection: compute the inward normal for each polygon edge, use signed distance to detect penetration, and push balls inward — NOT a simple circular distance-from-center check, which breaks on shapes with few sides like triangles
-Run physics in 5 substeps per frame for stability, and re-constrain balls inside the polygon after ball-ball collision resolution to prevent escape
-Spawn balls using the polygon's apothem (inscribed radius), not the circumradius, so they start inside any shape
+        <span class="section-head">Control panel</span>
+        <span class="prompt-item">A fixed glassmorphism panel (top-left, dark translucent background, backdrop blur, subtle cyan-tinted borders) with controls organized into 4 collapsible sections, each in its own rounded card with a subtle border that brightens on hover</span>
+        <span class="prompt-item">Section headers are clickable to expand/collapse with a chevron indicator; panel scrolls if it overflows the viewport</span>
 
-The control panel:
-A fixed glassmorphism panel (top-left, dark translucent background, backdrop blur, subtle cyan-tinted borders) with controls organized into 4 collapsible sections, each in its own rounded card with a subtle border that brightens on hover. Section headers are clickable to expand/collapse with a chevron indicator. The panel should scroll if it overflows the viewport.
+        <span class="section-head">Sections and controls</span>
+        <span class="prompt-item">Shape — Sides (range 3-20, shows shape name like "Triangle", "Pentagon", etc.), Spin Speed (range -3 to 3, negative = reverse)</span>
+        <span class="prompt-item">Balls — Count (range 1-200), Size Variation (range 0-40), Bounciness (range 0-1.2), Ball Collisions toggle</span>
+        <span class="prompt-item">Physics — Gravity Angle (range 0-360, display as arrow character), Gravity Strength (range 0-1500, 0 = zero-G), Time Scale (range 0-3x)</span>
+        <span class="prompt-item">Effects — Motion Trails toggle, Explode button (applies random 300-800 velocity impulse to every ball)</span>
 
-Sections and controls:
+        <span class="section-head">Tooltips</span>
+        <span class="prompt-item">Each control has a hover tooltip (real DOM element, not CSS pseudo-element) positioned with JS using getBoundingClientRect, appearing to the right of the hovered control</span>
 
-Shape — Sides (range 3–20, shows shape name like "Triangle", "Pentagon", etc. below the slider), Spin Speed (range -3 to 3, negative = reverse)
-Balls — Count (range 1–200), Size Variation (range 0–40, controls max random radius added to a base size of 6), Bounciness (range 0–1.2, controls wall restitution), Ball Collisions (toggle switch, when off balls pass through each other)
-Physics — Gravity Angle (range 0–360°, display as arrow character like ↓ ← ↑ →), Gravity Strength (range 0–1500, 0 = zero-G), Time Scale (range 0–3×, scales physics dt)
-Effects — Motion Trails (toggle, implemented by drawing a semi-transparent black rect over the previous frame instead of clearing), Explode button (applies random 300–800 velocity impulse to every ball)
+        <span class="section-head">Visual style</span>
+        <span class="prompt-item">Dark background (#0a0a0f), cyan accent color rgba(100, 200, 255)</span>
+        <span class="prompt-item">Balls have a radial gradient glow, solid fill, and small white highlight dot</span>
+        <span class="prompt-item">Polygon frame has a glowing stroke with shadowBlur and small dots at each vertex</span>
+        <span class="prompt-item">Subtle radial background glow behind the polygon</span>
+        <span class="prompt-item">Toggle switches and a styled action button for Explode</span>
+        <span class="prompt-item">Sliders with custom thumb styling (cyan circles with box-shadow glow)</span>
 
-Tooltips: Each control has a hover tooltip with a short description of what it does. The tooltip MUST be a real DOM element positioned outside the control panel (not a CSS pseudo-element), because the panel has overflow-y: auto which clips pseudo-element tooltips. Position it with JS on mouseenter using getBoundingClientRect, appearing to the right of the hovered control.
-
-Visual style:
-
-Dark background (#0a0a0f), cyan accent color rgba(100, 200, 255)
-Balls have a radial gradient glow, a solid fill, and a small white highlight dot
-The polygon frame has a glowing stroke with shadowBlur and small dots at each vertex
-Subtle radial background glow behind the polygon
-Toggle switches and a styled action button for Explode
-Sliders with custom thumb styling (cyan circles with box-shadow glow)
-
-Changing count, size variation, or sides should reinitialize all balls. Changing spin speed, bounciness, gravity, time scale, collisions, and trails should take effect immediately without resetting.</pre>
+        <span class="section-head">Behavior</span>
+        <span class="prompt-item">Changing count, size variation, or sides should reinitialize all balls</span>
+        <span class="prompt-item">Changing spin speed, bounciness, gravity, time scale, collisions, and trails should take effect immediately without resetting</span>
+      </div>
     </details>
   </div>
 
@@ -385,7 +531,7 @@ Changing count, size variation, or sides should reinitialize all balls. Changing
 
   <div class="about-col">
     <h2>Models & tools tested</h2>
-    <p>Some entries are foundation models prompted directly. Others are AI-powered coding tools — agents that use foundation models under the hood but add their own scaffolding, prompting, and iteration strategies.</p>
+    <p>Some entries are foundation models prompted directly. Others are AI-powered coding tools that wrap foundation models with their own scaffolding and iteration strategies.</p>
     <table class="entry-table" id="entry-table"></table>
   </div>
 </div>
@@ -393,11 +539,11 @@ Changing count, size variation, or sides should reinitialize all balls. Changing
 
 <script>
 const MODELS = [
-  { id: 'opus-4-6',   name: 'Claude Opus 4.6',   provider: 'Anthropic',   type: 'model', foundation: null,          path: 'sims/opus-4-6/' },
-  { id: 'sonnet-4-6', name: 'Claude Sonnet 4.6',  provider: 'Anthropic',   type: 'model', foundation: null,          path: 'sims/sonnet-4-6/' },
-  { id: 'haiku-4-5',  name: 'Claude Haiku 4.5',   provider: 'Anthropic',   type: 'model', foundation: null,          path: 'sims/haiku-4-5/' },
-  { id: 'ampcode',    name: 'Amp Code',            provider: 'Sourcegraph', type: 'tool',  foundation: 'Claude Sonnet 4.6', path: 'sims/ampcode/' },
-  { id: 'droid',      name: 'Droid',               provider: 'Factory.ai',  type: 'tool',  foundation: null,          path: 'sims/droid/' },
+  { id: 'opus-4-6',   name: 'Claude Opus 4.6',   provider: 'Anthropic',   type: 'model', foundation: null,                 path: 'sims/opus-4-6/' },
+  { id: 'sonnet-4-6', name: 'Claude Sonnet 4.6',  provider: 'Anthropic',   type: 'model', foundation: null,                 path: 'sims/sonnet-4-6/' },
+  { id: 'haiku-4-5',  name: 'Claude Haiku 4.5',   provider: 'Anthropic',   type: 'model', foundation: null,                 path: 'sims/haiku-4-5/' },
+  { id: 'ampcode',    name: 'Amp Code',            provider: 'Sourcegraph', type: 'tool',  foundation: 'Claude Sonnet 4.6',  path: 'sims/ampcode/' },
+  { id: 'droid',      name: 'Droid',               provider: 'Factory.ai',  type: 'tool',  foundation: null,                 path: 'sims/droid/' },
 ];
 
 let selected = [MODELS[0].id];
@@ -405,6 +551,7 @@ let viewMode = 'single';
 
 const viewport = document.getElementById('viewport');
 const btnContainer = document.getElementById('model-buttons');
+const standaloneLink = document.getElementById('standalone-link');
 
 // Build model buttons
 MODELS.forEach(m => {
@@ -422,7 +569,6 @@ document.querySelectorAll('.view-toggle button').forEach(btn => {
     viewMode = btn.dataset.view;
     document.querySelectorAll('.view-toggle button').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-
     if (viewMode === 'single' && selected.length > 1) {
       selected = [selected[selected.length - 1]];
     }
@@ -445,13 +591,25 @@ function toggleModel(id) {
   render();
 }
 
+function updateStandaloneLink() {
+  if (selected.length === 1) {
+    const model = MODELS.find(m => m.id === selected[0]);
+    standaloneLink.href = model.path;
+    standaloneLink.style.opacity = '1';
+    standaloneLink.style.pointerEvents = 'auto';
+  } else {
+    standaloneLink.href = '#';
+    standaloneLink.style.opacity = '0.35';
+    standaloneLink.style.pointerEvents = 'none';
+  }
+}
+
 function render() {
-  // Update button states
   document.querySelectorAll('.model-btn').forEach(btn => {
     btn.classList.toggle('active', selected.includes(btn.dataset.id));
   });
 
-  // Build viewport
+  updateStandaloneLink();
   viewport.innerHTML = '';
 
   if (selected.length === 0) {
@@ -464,17 +622,18 @@ function render() {
     const pane = document.createElement('div');
     pane.className = 'sim-pane';
 
-    const label = document.createElement('div');
-    label.className = 'pane-label';
-    const subtitle = model.foundation ? `${model.provider} · uses ${model.foundation}` : model.provider;
-    label.innerHTML = `<span class="model-tag">${model.name}</span> <span>${subtitle}</span>
-      <a class="open-link" href="${model.path}" target="_blank">Open standalone &rarr;</a>`;
+    if (selected.length > 1) {
+      const label = document.createElement('div');
+      label.className = 'pane-label';
+      const subtitle = model.foundation ? `${model.provider} · uses ${model.foundation}` : model.provider;
+      label.innerHTML = `<span class="model-tag">${model.name}</span> <span>${subtitle}</span>`;
+      pane.appendChild(label);
+    }
 
     const iframe = document.createElement('iframe');
     iframe.src = model.path;
     iframe.setAttribute('loading', 'lazy');
 
-    pane.appendChild(label);
     pane.appendChild(iframe);
     viewport.appendChild(pane);
   });
@@ -490,7 +649,6 @@ table.innerHTML = `<tr><th>Name</th><th>Type</th><th>Provider</th><th>Foundation
     <td>${m.foundation || (m.type === 'model' ? '—' : 'Unknown')}</td>
   </tr>`).join('');
 
-// Initial render
 render();
 </script>
 
