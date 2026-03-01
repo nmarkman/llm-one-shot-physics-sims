@@ -194,13 +194,24 @@
     line-height: 1.6;
   }
 
-  /* About section (shown below viewport on scroll) */
-  .about {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 3rem 2rem;
+  /* About section */
+  .about-section {
+    background: var(--surface);
     border-top: 1px solid var(--border);
   }
+
+  .about {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 3rem 2rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2.5rem;
+  }
+
+  .about-col { }
+
+  .about-col.full { grid-column: 1 / -1; }
 
   .about h2 {
     font-size: 1.3rem;
@@ -237,7 +248,7 @@
   }
 
   .about code {
-    background: var(--surface-2);
+    background: var(--bg);
     padding: 0.15rem 0.4rem;
     border-radius: 4px;
     font-size: 0.85em;
@@ -250,12 +261,53 @@
 
   .about a:hover { text-decoration: underline; }
 
+  /* Entry table */
+  .entry-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    margin-top: 0.75rem;
+  }
+
+  .entry-table th {
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .entry-table td {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid rgba(42, 42, 58, 0.5);
+    color: var(--text-muted);
+  }
+
+  .entry-table td:first-child { color: var(--text); font-weight: 500; }
+
+  .type-badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .type-badge.model { background: rgba(108, 99, 255, 0.15); color: #8b83ff; }
+  .type-badge.tool { background: rgba(78, 205, 196, 0.15); color: #4ecdc4; }
+
   @media (max-width: 768px) {
     .header h1 { font-size: 1.5rem; }
     .viewport { flex-direction: column; height: auto; min-height: unset; }
     .sim-pane { height: 60vh; border-right: none; border-bottom: 1px solid var(--border); }
     .view-toggle { margin-left: 0; }
     .controls { gap: 0.4rem; }
+    .about { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -267,7 +319,7 @@
 </div>
 
 <div class="controls">
-  <label>Models:</label>
+  <label>Models & Tools:</label>
   <div id="model-buttons"></div>
   <div class="view-toggle">
     <button data-view="single" class="active">Single</button>
@@ -277,30 +329,75 @@
 
 <div class="viewport" id="viewport"></div>
 
+<div class="about-section">
 <div class="about">
-  <h2>About this project</h2>
-  <p>Each model received the exact same prompt asking it to build an interactive physics simulator with bouncing balls inside a rotating polygon. Every result here is the raw, unedited output — one prompt, one response, no refinement.</p>
-  <p style="margin-top: 1rem;">It's a surprisingly revealing test. The prompt is complex enough to expose real differences in how models reason about physics, structure code, and design interfaces — but simple enough that every model can produce something functional.</p>
+  <div class="about-col full">
+    <h2>About this project</h2>
+    <p>Each model or tool received the exact same prompt — build an interactive physics simulator with bouncing balls inside a rotating polygon. Every result here is the raw, unedited output. One prompt, one response, no refinement.</p>
+    <p style="margin-top: 0.75rem;">It's a surprisingly revealing test. The prompt is complex enough to expose real differences in how models reason about physics, structure code, and design interfaces — but simple enough that every model can produce something functional.</p>
+    <details style="margin-top: 1rem;">
+      <summary style="cursor: pointer; color: var(--accent); font-weight: 600; font-size: 0.9rem;">View the exact prompt used</summary>
+      <pre style="margin-top: 0.75rem; padding: 1rem; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; font-size: 0.8rem; line-height: 1.6; color: var(--text-muted); overflow-x: auto; white-space: pre-wrap; max-height: 400px; overflow-y: auto;">Create a single-page physics simulation web app (vanilla HTML/CSS/JS, no frameworks) with two files: index.html and sim.js.
 
-  <h2 style="margin-top: 2rem;">What to look for</h2>
-  <ul>
-    <li><strong>Physics accuracy</strong> — Do balls behave realistically? How is collision detection handled?</li>
-    <li><strong>UI/UX quality</strong> — How polished are the controls? Is the interface intuitive?</li>
-    <li><strong>Code sophistication</strong> — Mass-weighted physics? Wall friction? Re-constraining after collisions?</li>
-    <li><strong>Visual design</strong> — Color choices, rendering effects, overall aesthetic</li>
-  </ul>
+The simulation:
 
-  <h2 style="margin-top: 2rem;">Adding a new model</h2>
-  <p>Drop the model's output into <code>sims/&lt;model-name&gt;/</code> with an <code>index.html</code> and <code>sim.js</code>, then add an entry to the <code>MODELS</code> array in this page's script.</p>
+A regular polygon frame (default octagon) spins continuously in the center of a dark canvas
+40 multicolored balls of varying sizes bounce inside the polygon, affected by gravity
+Full 2D physics: gravity, wall collisions that account for the polygon's rotational velocity at the contact point (spinning walls should drag/fling balls), mass-based ball-to-ball collisions with separation and impulse resolution, and velocity damping
+Use proper edge-based collision detection: compute the inward normal for each polygon edge, use signed distance to detect penetration, and push balls inward — NOT a simple circular distance-from-center check, which breaks on shapes with few sides like triangles
+Run physics in 5 substeps per frame for stability, and re-constrain balls inside the polygon after ball-ball collision resolution to prevent escape
+Spawn balls using the polygon's apothem (inscribed radius), not the circumradius, so they start inside any shape
+
+The control panel:
+A fixed glassmorphism panel (top-left, dark translucent background, backdrop blur, subtle cyan-tinted borders) with controls organized into 4 collapsible sections, each in its own rounded card with a subtle border that brightens on hover. Section headers are clickable to expand/collapse with a chevron indicator. The panel should scroll if it overflows the viewport.
+
+Sections and controls:
+
+Shape — Sides (range 3–20, shows shape name like "Triangle", "Pentagon", etc. below the slider), Spin Speed (range -3 to 3, negative = reverse)
+Balls — Count (range 1–200), Size Variation (range 0–40, controls max random radius added to a base size of 6), Bounciness (range 0–1.2, controls wall restitution), Ball Collisions (toggle switch, when off balls pass through each other)
+Physics — Gravity Angle (range 0–360°, display as arrow character like ↓ ← ↑ →), Gravity Strength (range 0–1500, 0 = zero-G), Time Scale (range 0–3×, scales physics dt)
+Effects — Motion Trails (toggle, implemented by drawing a semi-transparent black rect over the previous frame instead of clearing), Explode button (applies random 300–800 velocity impulse to every ball)
+
+Tooltips: Each control has a hover tooltip with a short description of what it does. The tooltip MUST be a real DOM element positioned outside the control panel (not a CSS pseudo-element), because the panel has overflow-y: auto which clips pseudo-element tooltips. Position it with JS on mouseenter using getBoundingClientRect, appearing to the right of the hovered control.
+
+Visual style:
+
+Dark background (#0a0a0f), cyan accent color rgba(100, 200, 255)
+Balls have a radial gradient glow, a solid fill, and a small white highlight dot
+The polygon frame has a glowing stroke with shadowBlur and small dots at each vertex
+Subtle radial background glow behind the polygon
+Toggle switches and a styled action button for Explode
+Sliders with custom thumb styling (cyan circles with box-shadow glow)
+
+Changing count, size variation, or sides should reinitialize all balls. Changing spin speed, bounciness, gravity, time scale, collisions, and trails should take effect immediately without resetting.</pre>
+    </details>
+  </div>
+
+  <div class="about-col">
+    <h2>What to look for</h2>
+    <ul>
+      <li><strong>Physics accuracy</strong> — Do balls behave realistically? How is collision detection handled?</li>
+      <li><strong>UI/UX quality</strong> — How polished are the controls? Is the interface intuitive?</li>
+      <li><strong>Code sophistication</strong> — Mass-weighted physics? Wall friction? Re-constraining after collisions?</li>
+      <li><strong>Visual design</strong> — Color choices, rendering effects, overall aesthetic</li>
+    </ul>
+  </div>
+
+  <div class="about-col">
+    <h2>Models & tools tested</h2>
+    <p>Some entries are foundation models prompted directly. Others are AI-powered coding tools — agents that use foundation models under the hood but add their own scaffolding, prompting, and iteration strategies.</p>
+    <table class="entry-table" id="entry-table"></table>
+  </div>
+</div>
 </div>
 
 <script>
 const MODELS = [
-  { id: 'opus-4-6',   name: 'Claude Opus 4.6',   provider: 'Anthropic', path: 'sims/opus-4-6/' },
-  { id: 'sonnet-4-6', name: 'Claude Sonnet 4.6',  provider: 'Anthropic', path: 'sims/sonnet-4-6/' },
-  { id: 'haiku-4-5',  name: 'Claude Haiku 4.5',   provider: 'Anthropic', path: 'sims/haiku-4-5/' },
-  { id: 'ampcode',    name: 'Amp Code',            provider: 'Sourcegraph', path: 'sims/ampcode/' },
-  { id: 'droid',      name: 'Droid',               provider: 'Factory.ai', path: 'sims/droid/' },
+  { id: 'opus-4-6',   name: 'Claude Opus 4.6',   provider: 'Anthropic',   type: 'model', foundation: null,          path: 'sims/opus-4-6/' },
+  { id: 'sonnet-4-6', name: 'Claude Sonnet 4.6',  provider: 'Anthropic',   type: 'model', foundation: null,          path: 'sims/sonnet-4-6/' },
+  { id: 'haiku-4-5',  name: 'Claude Haiku 4.5',   provider: 'Anthropic',   type: 'model', foundation: null,          path: 'sims/haiku-4-5/' },
+  { id: 'ampcode',    name: 'Amp Code',            provider: 'Sourcegraph', type: 'tool',  foundation: 'Claude Sonnet 4.6', path: 'sims/ampcode/' },
+  { id: 'droid',      name: 'Droid',               provider: 'Factory.ai',  type: 'tool',  foundation: null,          path: 'sims/droid/' },
 ];
 
 let selected = [MODELS[0].id];
@@ -369,7 +466,8 @@ function render() {
 
     const label = document.createElement('div');
     label.className = 'pane-label';
-    label.innerHTML = `<span class="model-tag">${model.name}</span> <span>${model.provider}</span>
+    const subtitle = model.foundation ? `${model.provider} · uses ${model.foundation}` : model.provider;
+    label.innerHTML = `<span class="model-tag">${model.name}</span> <span>${subtitle}</span>
       <a class="open-link" href="${model.path}" target="_blank">Open standalone &rarr;</a>`;
 
     const iframe = document.createElement('iframe');
@@ -381,6 +479,16 @@ function render() {
     viewport.appendChild(pane);
   });
 }
+
+// Build entry table
+const table = document.getElementById('entry-table');
+table.innerHTML = `<tr><th>Name</th><th>Type</th><th>Provider</th><th>Foundation model</th></tr>` +
+  MODELS.map(m => `<tr>
+    <td>${m.name}</td>
+    <td><span class="type-badge ${m.type}">${m.type}</span></td>
+    <td>${m.provider}</td>
+    <td>${m.foundation || (m.type === 'model' ? '—' : 'Unknown')}</td>
+  </tr>`).join('');
 
 // Initial render
 render();
