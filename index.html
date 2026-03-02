@@ -435,6 +435,35 @@
 
   .footer a:hover { text-decoration: underline; }
 
+
+  /* Mobile controls toggle */
+  .controls-toggle {
+    display: none;
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    z-index: 200;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-muted);
+    font-size: 1.2rem;
+    cursor: pointer;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+    transition: all 0.2s;
+    align-items: center;
+    justify-content: center;
+  }
+  .controls-toggle:active { transform: scale(0.92); }
+
+  @media (max-width: 768px) {
+    .controls-toggle { display: flex; }
+    .header.hidden, .controls.hidden { display: none !important; }
+    .viewport.full { height: 100vh !important; }
+  }
+
   @media (max-width: 768px) {
     .header {
       flex-direction: column;
@@ -727,5 +756,27 @@ table.innerHTML = `<tr><th>Name</th><th>Type</th><th>Provider</th><th>Foundation
 render();
 </script>
 
+
+<button class="controls-toggle" id="ctrl-toggle" title="Toggle controls">⚙️</button>
+<script>
+  const ctrlToggle = document.getElementById('ctrl-toggle');
+  if (ctrlToggle) {
+    ctrlToggle.addEventListener('click', () => {
+      const header = document.querySelector('.header');
+      const controls = document.querySelector('.controls');
+      const viewport = document.getElementById('viewport');
+      const isHidden = controls.classList.contains('hidden');
+      header.classList.toggle('hidden', !isHidden);
+      controls.classList.toggle('hidden', !isHidden);
+      viewport.classList.toggle('full', !isHidden);
+      ctrlToggle.textContent = !isHidden ? '⚙️' : '✕';
+      // Tell iframes to show/hide sim control panels
+      const showPanel = !isHidden; // hiding parent controls = show sim panel
+      document.querySelectorAll('.sim-pane iframe').forEach(f => {
+        f.contentWindow.postMessage(showPanel ? 'show-panel' : 'hide-panel', '*');
+      });
+    });
+  }
+</script>
 </body>
 </html>
