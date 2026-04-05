@@ -18,7 +18,13 @@ Some entries are foundation models prompted directly. Others are AI-powered codi
 |------|------|----------|-----------------|
 | Claude Opus 4.6 | Model | Anthropic | — |
 | Claude Sonnet 4.6 | Model | Anthropic | — |
+| Claude Opus 4.5 | Model | Anthropic | — |
+| Claude Sonnet 4.5 | Model | Anthropic | — |
 | Claude Haiku 4.5 | Model | Anthropic | — |
+| Claude Opus 4.1 | Model | Anthropic | — |
+| Claude Opus 4 | Model | Anthropic | — |
+| Claude Sonnet 4 | Model | Anthropic | — |
+| Claude 3 Haiku | Model | Anthropic | — |
 | Amp Code | Tool | Sourcegraph | Claude Sonnet 4.6 |
 | Droid | Tool | Factory.ai | Unknown |
 
