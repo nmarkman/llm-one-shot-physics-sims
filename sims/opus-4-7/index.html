@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Claude Opus 4.7</title>
+<style>
+  :root {
+    --accent: rgba(100, 200, 255, 1);
+    --accent-soft: rgba(100, 200, 255, 0.25);
+    --accent-border: rgba(100, 200, 255, 0.18);
+    --accent-border-hover: rgba(100, 200, 255, 0.4);
+    --panel-bg: rgba(15, 18, 28, 0.72);
+    --card-bg: rgba(20, 24, 36, 0.55);
+    --text: #e8f2ff;
+    --text-dim: #9fb3c8;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: #0a0a0f;
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    overflow: hidden;
+  }
+
+  canvas {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+    position: absolute;
+    inset: 0;
+  }
+
+  #panel {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    width: 280px;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    background: var(--panel-bg);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--accent-border);
+    border-radius: 14px;
+    padding: 14px;
+    z-index: 10;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  #panel::-webkit-scrollbar { width: 6px; }
+  #panel::-webkit-scrollbar-track { background: transparent; }
+  #panel::-webkit-scrollbar-thumb {
+    background: var(--accent-soft);
+    border-radius: 3px;
+  }
+
+  .panel-title {
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 12px 4px;
+    text-shadow: 0 0 12px var(--accent-soft);
+  }
+
+  .section {
+    background: var(--card-bg);
+    border: 1px solid var(--accent-border);
+    border-radius: 10px;
+    margin-bottom: 10px;
+    overflow: hidden;
+    transition: border-color 0.2s ease;
+  }
+  .section:hover { border-color: var(--accent-border-hover); }
+
+  .section-header {
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--accent);
+  }
+
+  .chevron {
+    transition: transform 0.25s ease;
+    font-size: 10px;
+    opacity: 0.85;
+  }
+  .section.collapsed .chevron { transform: rotate(-90deg); }
+
+  .section-body {
+    padding: 4px 12px 12px 12px;
+    display: block;
+  }
+  .section.collapsed .section-body { display: none; }
+
+  .control {
+    margin: 10px 0;
+  }
+  .control-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .control label {
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.5px;
+  }
+  .control .val {
+    font-size: 11px;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+  .subtext {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 4px;
+    letter-spacing: 0.5px;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    background: rgba(100, 200, 255, 0.15);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 10px var(--accent), 0 0 4px var(--accent);
+    border: none;
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 10px var(--accent);
+    border: none;
+  }
+
+  .toggle {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    background: rgba(100, 200, 255, 0.12);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    border: 1px solid var(--accent-border);
+  }
+  .toggle.on { background: rgba(100, 200, 255, 0.35); }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--accent);
+    transition: transform 0.2s ease;
+  }
+  .toggle.on::after { transform: translateX(16px); }
+
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 8px 12px;
+    background: rgba(100, 200, 255, 0.12);
+    border: 1px solid var(--accent-border);
+    color: var(--accent);
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+  }
+  .btn:hover {
+    background: rgba(100, 200, 255, 0.22);
+    box-shadow: 0 0 14px rgba(100, 200, 255, 0.4);
+  }
+  .btn:active { transform: scale(0.98); }
+
+  #tooltip {
+    position: fixed;
+    background: rgba(10, 15, 25, 0.92);
+    border: 1px solid var(--accent-border);
+    color: var(--text);
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    max-width: 220px;
+    line-height: 1.4;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    z-index: 100;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+  }
+  #tooltip.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+
+<style>
+  
+  @media (max-width: 768px) {
+    #panel, #controls, #controlPanel, #control-panel, .controls, .sidebar {
+      width: calc(100vw - 32px) !important;
+      max-width: none !important;
+      left: 16px !important;
+      right: 16px !important;
+      max-height: 60vh !important;
+      font-size: 0.85rem !important;
+    }
+  }
+
+  .sim-panel-toggle {
+    display: none;
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    z-index: 9999;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid rgba(100,200,255,0.2);
+    background: rgba(10, 14, 24, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: rgba(200,220,240,0.8);
+    font-size: 1.2rem;
+    cursor: pointer;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+    align-items: center;
+    justify-content: center;
+  }
+  .sim-panel-toggle:active { transform: scale(0.92); }
+
+  @media (max-width: 768px) {
+    
+  @media (max-width: 768px) {
+    #panel, #controls, #controlPanel, #control-panel, .controls, .sidebar {
+      width: calc(100vw - 32px) !important;
+      max-width: none !important;
+      left: 16px !important;
+      right: 16px !important;
+      max-height: 60vh !important;
+      font-size: 0.85rem !important;
+    }
+  }
+
+  .sim-panel-toggle { display: flex; }
+    #panel.panel-hidden { display: none !important; }
+  }
+
+  /* Embed mode: hide toggle + panel */
+  .embed-mode .sim-panel-toggle { display: none !important; }
+  .embed-mode #panel { display: none !important; }
+</style>
+<script>
+  (function() {
+    var isEmbed = new URLSearchParams(location.search).has('embed');
+    if (isEmbed) document.documentElement.classList.add('embed-mode');
+    
+    // Listen for parent show/hide messages
+    window.addEventListener('message', function(e) {
+      if (e.data === 'show-panel') {
+        document.documentElement.classList.remove('embed-mode');
+      } else if (e.data === 'hide-panel') {
+        document.documentElement.classList.add('embed-mode');
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+      var btn = document.createElement('button');
+      btn.className = 'sim-panel-toggle';
+      btn.textContent = isEmbed ? '⚙️' : '✕';
+      btn.title = 'Toggle controls';
+      document.body.appendChild(btn);
+      
+      var panel = document.querySelector('#panel');
+      if (!panel) return;
+      if (!isEmbed) {
+        // Standalone on mobile: panel visible initially
+      }
+      
+      btn.addEventListener('click', function() {
+        panel.classList.toggle('panel-hidden');
+        if (isEmbed) {
+          document.documentElement.classList.toggle('embed-mode');
+        }
+        btn.textContent = panel.classList.contains('panel-hidden') || 
+          document.documentElement.classList.contains('embed-mode') ? '⚙️' : '✕';
+      });
+    });
+  })();
+</script>
+
+<canvas id="canvas"></canvas>
+
+<div id="panel">
+  <div class="panel-title">Physics Sim</div>
+
+  <div class="section" data-section="shape">
+    <div class="section-header">Shape <span class="chevron">▼</span></div>
+    <div class="section-body">
+      <div class="control" data-tip="Number of sides on the spinning polygon frame (3 = triangle, 20 = nearly circular).">
+        <div class="control-row"><label>Sides</label><span class="val" id="sidesVal">8</span></div>
+        <input type="range" id="sides" min="3" max="20" step="1" value="8">
+        <div class="subtext" id="sidesName">Octagon</div>
+      </div>
+      <div class="control" data-tip="Rotational speed of the polygon. Negative values spin the other way.">
+        <div class="control-row"><label>Spin Speed</label><span class="val" id="spinVal">0.5</span></div>
+        <input type="range" id="spin" min="-3" max="3" step="0.05" value="0.5">
+      </div>
+    </div>
+  </div>
+
+  <div class="section" data-section="balls">
+    <div class="section-header">Balls <span class="chevron">▼</span></div>
+    <div class="section-body">
+      <div class="control" data-tip="Total number of balls in the simulation. Changing this resets the balls.">
+        <div class="control-row"><label>Count</label><span class="val" id="countVal">40</span></div>
+        <input type="range" id="count" min="1" max="200" step="1" value="40">
+      </div>
+      <div class="control" data-tip="Maximum extra radius added on top of the base size of 6 pixels.">
+        <div class="control-row"><label>Size Variation</label><span class="val" id="sizeVal">14</span></div>
+        <input type="range" id="size" min="0" max="40" step="1" value="14">
+      </div>
+      <div class="control" data-tip="How energetic wall bounces are. Above 1 gains energy on each bounce.">
+        <div class="control-row"><label>Bounciness</label><span class="val" id="bounceVal">0.85</span></div>
+        <input type="range" id="bounce" min="0" max="1.2" step="0.01" value="0.85">
+      </div>
+      <div class="control" data-tip="Toggle ball-to-ball collisions. When off, balls pass through each other.">
+        <div class="control-row"><label>Ball Collisions</label>
+          <div class="toggle on" id="collisions"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" data-section="physics">
+    <div class="section-header">Physics <span class="chevron">▼</span></div>
+    <div class="section-body">
+      <div class="control" data-tip="Direction gravity pulls the balls. Rotate the arrow around the compass.">
+        <div class="control-row"><label>Gravity Angle</label><span class="val" id="gAngleVal">↓</span></div>
+        <input type="range" id="gAngle" min="0" max="360" step="1" value="90">
+      </div>
+      <div class="control" data-tip="Strength of gravity in pixels/s². Set to 0 for a zero-G environment.">
+        <div class="control-row"><label>Gravity Strength</label><span class="val" id="gStrengthVal">600</span></div>
+        <input type="range" id="gStrength" min="0" max="1500" step="10" value="600">
+      </div>
+      <div class="control" data-tip="Scales simulation time. Lower for slow-motion, higher to fast-forward.">
+        <div class="control-row"><label>Time Scale</label><span class="val" id="timeVal">1.0×</span></div>
+        <input type="range" id="time" min="0" max="3" step="0.05" value="1">
+      </div>
+    </div>
+  </div>
+
+  <div class="section" data-section="effects">
+    <div class="section-header">Effects <span class="chevron">▼</span></div>
+    <div class="section-body">
+      <div class="control" data-tip="Draw a semi-transparent overlay each frame so balls leave glowing trails.">
+        <div class="control-row"><label>Motion Trails</label>
+          <div class="toggle" id="trails"></div>
+        </div>
+      </div>
+      <div class="control" data-tip="Apply a strong random velocity impulse to every ball at once.">
+        <button class="btn" id="explode">Explode</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="tooltip"></div>
+
+<script src="sim.js"></script>
+</body>
+</html>

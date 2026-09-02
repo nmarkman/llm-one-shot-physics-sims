@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Claude Sonnet 5</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #0a0a0f;
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  canvas {
+    position: fixed;
+    inset: 0;
+    display: block;
+    z-index: 0;
+  }
+
+  /* ---------- Panel ---------- */
+  .panel {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    width: 320px;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    z-index: 10;
+    background: rgba(14, 18, 26, 0.55);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(100, 200, 255, 0.25);
+    border-radius: 16px;
+    padding: 14px;
+    color: #dcefff;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45), inset 0 0 40px rgba(100, 200, 255, 0.03);
+  }
+
+  .panel::-webkit-scrollbar { width: 8px; }
+  .panel::-webkit-scrollbar-track { background: transparent; }
+  .panel::-webkit-scrollbar-thumb {
+    background: rgba(100, 200, 255, 0.3);
+    border-radius: 4px;
+  }
+
+  .panel-title {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #8fd8ff;
+    padding: 4px 6px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-shadow: 0 0 12px rgba(100, 200, 255, 0.5);
+  }
+
+  /* ---------- Section cards ---------- */
+  .section {
+    margin-bottom: 10px;
+    border: 1px solid rgba(100, 200, 255, 0.14);
+    border-radius: 12px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.02);
+    transition: border-color 0.2s ease, background 0.2s ease;
+  }
+  .section:hover {
+    border-color: rgba(100, 200, 255, 0.45);
+    background: rgba(100, 200, 255, 0.03);
+  }
+  .section:last-child { margin-bottom: 2px; }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 11px 14px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #8fd8ff;
+  }
+
+  .section-header .chevron {
+    font-size: 11px;
+    color: rgba(100, 200, 255, 0.8);
+    transition: transform 0.2s ease;
+  }
+  .section.collapsed .chevron { transform: rotate(-90deg); }
+
+  .section-body {
+    padding: 2px 14px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .section.collapsed .section-body { display: none; }
+
+  /* ---------- Controls ---------- */
+  .control {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 4px 6px;
+    border-radius: 8px;
+    transition: background 0.15s ease;
+  }
+  .control:hover { background: rgba(100, 200, 255, 0.05); }
+
+  .control-toggle {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .control-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 12.5px;
+    color: #cfe9ff;
+  }
+  .control-label .value {
+    color: #64c8ff;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+
+  .sub-label {
+    font-size: 11.5px;
+    font-style: italic;
+    color: rgba(140, 200, 255, 0.75);
+    margin-top: -2px;
+  }
+
+  .toggle-label-text {
+    font-size: 12.5px;
+    color: #cfe9ff;
+  }
+
+  /* ---------- Range sliders ---------- */
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(100, 200, 255, 0.18);
+    outline: none;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: #64c8ff;
+    box-shadow: 0 0 8px rgba(100, 200, 255, 0.95), 0 0 2px #fff;
+    cursor: pointer;
+    border: none;
+    transition: box-shadow 0.15s ease;
+  }
+  input[type="range"]::-webkit-slider-thumb:hover {
+    box-shadow: 0 0 14px rgba(100, 200, 255, 1), 0 0 4px #fff;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: #64c8ff;
+    box-shadow: 0 0 8px rgba(100, 200, 255, 0.95);
+    cursor: pointer;
+    border: none;
+  }
+  input[type="range"]::-moz-range-track {
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(100, 200, 255, 0.18);
+  }
+
+  /* ---------- Toggle switch ---------- */
+  .toggle {
+    position: relative;
+    display: inline-block;
+    width: 42px;
+    height: 23px;
+    flex-shrink: 0;
+  }
+  .toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  .toggle .slider {
+    position: absolute;
+    inset: 0;
+    background: rgba(100, 200, 255, 0.15);
+    border: 1px solid rgba(100, 200, 255, 0.35);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: 0.2s ease;
+  }
+  .toggle .slider::before {
+    content: "";
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    left: 2px;
+    top: 2px;
+    background: #8fd8ff;
+    border-radius: 50%;
+    transition: 0.2s ease;
+    box-shadow: 0 0 6px rgba(100, 200, 255, 0.8);
+  }
+  .toggle input:checked + .slider {
+    background: rgba(100, 200, 255, 0.55);
+    border-color: rgba(100, 200, 255, 0.7);
+  }
+  .toggle input:checked + .slider::before {
+    transform: translateX(18px);
+    background: #ffffff;
+  }
+
+  /* ---------- Explode button ---------- */
+  .btn-explode {
+    width: 100%;
+    padding: 11px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 130, 100, 0.45);
+    background: linear-gradient(135deg, rgba(255, 90, 90, 0.25), rgba(255, 160, 60, 0.25));
+    color: #ffe3d9;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: 0.2s ease;
+  }
+  .btn-explode:hover {
+    background: linear-gradient(135deg, rgba(255, 90, 90, 0.45), rgba(255, 160, 60, 0.45));
+    box-shadow: 0 0 18px rgba(255, 110, 90, 0.5);
+    transform: translateY(-1px);
+  }
+  .btn-explode:active { transform: translateY(0); }
+
+  /* ---------- Tooltip (real DOM element, appended to body) ---------- */
+  #tooltip {
+    position: fixed;
+    max-width: 230px;
+    background: rgba(8, 12, 18, 0.96);
+    border: 1px solid rgba(100, 200, 255, 0.45);
+    color: #e2f2ff;
+    font-size: 12px;
+    line-height: 1.45;
+    padding: 9px 11px;
+    border-radius: 9px;
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity 0.12s ease, transform 0.12s ease;
+    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.55), 0 0 14px rgba(100, 200, 255, 0.15);
+  }
+  #tooltip.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+</style>
+</head>
+<body>
+
+
+<style>
+  
+  @media (max-width: 768px) {
+    #panel, #controls, #controlPanel, #control-panel, .controls, .sidebar {
+      width: calc(100vw - 32px) !important;
+      max-width: none !important;
+      left: 16px !important;
+      right: 16px !important;
+      max-height: 60vh !important;
+      font-size: 0.85rem !important;
+    }
+  }
+
+  .sim-panel-toggle {
+    display: none;
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    z-index: 9999;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid rgba(100,200,255,0.2);
+    background: rgba(10, 14, 24, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: rgba(200,220,240,0.8);
+    font-size: 1.2rem;
+    cursor: pointer;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+    align-items: center;
+    justify-content: center;
+  }
+  .sim-panel-toggle:active { transform: scale(0.92); }
+
+  @media (max-width: 768px) {
+    
+  @media (max-width: 768px) {
+    #panel, #controls, #controlPanel, #control-panel, .controls, .sidebar {
+      width: calc(100vw - 32px) !important;
+      max-width: none !important;
+      left: 16px !important;
+      right: 16px !important;
+      max-height: 60vh !important;
+      font-size: 0.85rem !important;
+    }
+  }
+
+  .sim-panel-toggle { display: flex; }
+    #panel.panel-hidden { display: none !important; }
+  }
+
+  /* Embed mode: hide toggle + panel */
+  .embed-mode .sim-panel-toggle { display: none !important; }
+  .embed-mode #panel { display: none !important; }
+</style>
+<script>
+  (function() {
+    var isEmbed = new URLSearchParams(location.search).has('embed');
+    if (isEmbed) document.documentElement.classList.add('embed-mode');
+    
+    // Listen for parent show/hide messages
+    window.addEventListener('message', function(e) {
+      if (e.data === 'show-panel') {
+        document.documentElement.classList.remove('embed-mode');
+      } else if (e.data === 'hide-panel') {
+        document.documentElement.classList.add('embed-mode');
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+      var btn = document.createElement('button');
+      btn.className = 'sim-panel-toggle';
+      btn.textContent = isEmbed ? '⚙️' : '✕';
+      btn.title = 'Toggle controls';
+      document.body.appendChild(btn);
+      
+      var panel = document.querySelector('#panel');
+      if (!panel) return;
+      if (!isEmbed) {
+        // Standalone on mobile: panel visible initially
+      }
+      
+      btn.addEventListener('click', function() {
+        panel.classList.toggle('panel-hidden');
+        if (isEmbed) {
+          document.documentElement.classList.toggle('embed-mode');
+        }
+        btn.textContent = panel.classList.contains('panel-hidden') || 
+          document.documentElement.classList.contains('embed-mode') ? '⚙️' : '✕';
+      });
+    });
+  })();
+</script>
+
+
+<canvas id="canvas"></canvas>
+
+<div class="panel" id="panel">
+  <div class="panel-title">⬡ POLYGON PHYSICS</div>
+
+  <!-- SHAPE SECTION -->
+  <div class="section" id="section-shape">
+    <div class="section-header">
+      <span>Shape</span>
+      <span class="chevron">▾</span>
+    </div>
+    <div class="section-body">
+      <div class="control" data-tooltip="Number of sides of the rotating polygon frame. Changing this reinitializes the balls so they spawn inside the new shape.">
+        <div class="control-label"><span>Sides</span><span class="value" id="sidesValue">8</span></div>
+        <input type="range" id="sidesRange" min="3" max="20" step="1" value="8" />
+        <div class="sub-label" id="sidesName">Octagon</div>
+      </div>
+
+      <div class="control" data-tooltip="Angular velocity of the polygon in radians per second. Negative values spin it in reverse. Spinning walls drag and fling balls on contact.">
+        <div class="control-label"><span>Spin Speed</span><span class="value" id="spinValue">0.60</span></div>
+        <input type="range" id="spinRange" min="-3" max="3" step="0.05" value="0.6" />
+      </div>
+    </div>
+  </div>
+
+  <!-- BALLS SECTION -->
+  <div class="section" id="section-balls">
+    <div class="section-header">
+      <span>Balls</span>
+      <span class="chevron">▾</span>
+    </div>
+    <div class="section-body">
+      <div class="control" data-tooltip="Number of balls simulated inside the polygon. Changing this reinitializes all balls.">
+        <div class="control-label"><span>Count</span><span class="value" id="countValue">40</span></div>
+        <input type="range" id="countRange" min="1" max="200" step="1" value="40" />
+      </div>
+
+      <div class="control" data-tooltip="Maximum extra radius randomly added on top of the base ball size of 6px. Changing this reinitializes all balls.">
+        <div class="control-label"><span>Size Variation</span><span class="value" id="sizeVarValue">15</span></div>
+        <input type="range" id="sizeVarRange" min="0" max="40" step="1" value="15" />
+      </div>
+
+      <div class="control" data-tooltip="Restitution used when balls collide with the polygon walls. Higher values bounce with more energy; above 1 adds energy on each bounce.">
+        <div class="control-label"><span>Bounciness</span><span class="value" id="bounceValue">0.75</span></div>
+        <input type="range" id="bounceRange" min="0" max="1.2" step="0.05" value="0.75" />
+      </div>
+
+      <div class="control control-toggle" data-tooltip="When enabled, balls physically collide and push off each other using mass-based impulses. When disabled, balls pass through one another.">
+        <span class="toggle-label-text">Ball Collisions</span>
+        <label class="toggle">
+          <input type="checkbox" id="collisionsToggle" checked />
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHYSICS SECTION -->
+  <div class="section" id="section-physics">
+    <div class="section-header">
+      <span>Physics</span>
+      <span class="chevron">▾</span>
+    </div>
+    <div class="section-body">
+      <div class="control" data-tooltip="Direction gravity pulls the balls, shown as an arrow. 0° points straight down.">
+        <div class="control-label"><span>Gravity Angle</span><span class="value" id="gravityAngleValue">↓ 0°</span></div>
+        <input type="range" id="gravityAngleRange" min="0" max="360" step="1" value="0" />
+      </div>
+
+      <div class="control" data-tooltip="Magnitude of the gravitational acceleration applied to every ball each frame. 0 means zero-gravity.">
+        <div class="control-label"><span>Gravity Strength</span><span class="value" id="gravityStrengthValue">500</span></div>
+        <input type="range" id="gravityStrengthRange" min="0" max="1500" step="10" value="500" />
+      </div>
+
+      <div class="control" data-tooltip="Multiplier applied to the physics timestep. Above 1× speeds up the simulation, below 1× slows it down, 0 freezes it.">
+        <div class="control-label"><span>Time Scale</span><span class="value" id="timeScaleValue">1.0×</span></div>
+        <input type="range" id="timeScaleRange" min="0" max="3" step="0.1" value="1" />
+      </div>
+    </div>
+  </div>
+
+  <!-- EFFECTS SECTION -->
+  <div class="section" id="section-effects">
+    <div class="section-header">
+      <span>Effects</span>
+      <span class="chevron">▾</span>
+    </div>
+    <div class="section-body">
+      <div class="control control-toggle" data-tooltip="When enabled, previous frames fade out slowly instead of being cleared, leaving trailing streaks behind moving balls.">
+        <span class="toggle-label-text">Motion Trails</span>
+        <label class="toggle">
+          <input type="checkbox" id="trailsToggle" />
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="control" data-tooltip="Applies a random outward velocity impulse (magnitude 300–800) to every ball instantly.">
+        <button class="btn-explode" id="explodeBtn">💥 Explode</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div id="tooltip"></div>
+
+<script src="sim.js"></script>
+</body>
+</html>

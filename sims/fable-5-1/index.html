@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <title>Claude Fable 5.1</title>
+  <style>
+    :root {
+      --accent: 100, 200, 255;
+      --bg: #0a0a0f;
+      --text: #e2ebf4;
+      --muted: rgba(190, 210, 230, 0.55);
+      --panel-bg: rgba(13, 16, 26, 0.66);
+      --card-border: rgba(var(--accent), 0.12);
+      --card-border-hover: rgba(var(--accent), 0.42);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Inter", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #canvas { position: fixed; inset: 0; display: block; }
+
+    /* ---------------- Control panel (glassmorphism) ---------------- */
+    .panel {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      z-index: 10;
+      width: 292px;
+      max-height: calc(100vh - 32px);
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 16px 14px 8px;
+      background: var(--panel-bg);
+      -webkit-backdrop-filter: blur(18px) saturate(150%);
+      backdrop-filter: blur(18px) saturate(150%);
+      border: 1px solid rgba(var(--accent), 0.18);
+      border-radius: 18px;
+      box-shadow:
+        0 12px 40px rgba(0, 0, 0, 0.55),
+        0 0 40px rgba(var(--accent), 0.06),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      scrollbar-width: thin;
+      scrollbar-color: rgba(var(--accent), 0.3) transparent;
+      animation: panel-in 0.5s ease-out both;
+    }
+    @keyframes panel-in {
+      from { opacity: 0; transform: translateX(-10px); }
+      to   { opacity: 1; transform: none; }
+    }
+    .panel::-webkit-scrollbar { width: 6px; }
+    .panel::-webkit-scrollbar-track { background: transparent; }
+    .panel::-webkit-scrollbar-thumb { background: rgba(var(--accent), 0.28); border-radius: 3px; }
+    .panel::-webkit-scrollbar-thumb:hover { background: rgba(var(--accent), 0.5); }
+
+    .panel-title {
+      margin: 0 0 4px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgb(var(--accent));
+      text-shadow: 0 0 14px rgba(var(--accent), 0.55);
+    }
+    .panel-title::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgb(var(--accent));
+      box-shadow: 0 0 10px rgb(var(--accent)), 0 0 20px rgba(var(--accent), 0.6);
+      animation: pulse 2.4s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+    .panel-sub {
+      margin: 0 0 14px 17px;
+      font-size: 11.5px;
+      color: var(--muted);
+    }
+
+    /* ---------------- Collapsible section cards ---------------- */
+    .card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      margin-bottom: 10px;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+    .card:hover {
+      border-color: var(--card-border-hover);
+      background: rgba(255, 255, 255, 0.045);
+      box-shadow: 0 0 16px rgba(var(--accent), 0.08);
+    }
+
+    .card-header {
+      display: flex;
+      width: 100%;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      background: none;
+      border: none;
+      border-radius: 12px;
+      color: rgba(var(--accent), 0.85);
+      font: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      text-align: left;
+      cursor: pointer;
+      user-select: none;
+      transition: color 0.2s ease;
+    }
+    .card-header:hover { color: rgb(var(--accent)); }
+    .card-header:focus-visible {
+      outline: 2px solid rgba(var(--accent), 0.6);
+      outline-offset: -2px;
+    }
+
+    .chevron {
+      width: 7px;
+      height: 7px;
+      margin-right: 3px;
+      border-right: 1.6px solid currentColor;
+      border-bottom: 1.6px solid currentColor;
+      transform: translateY(-2px) rotate(45deg);
+      transition: transform 0.25s ease;
+      opacity: 0.85;
+    }
+    .card.collapsed .chevron { transform: translateX(-2px) rotate(-45deg); }
+
+    /* Smooth expand/collapse using the 0fr grid trick */
+    .card-body {
+      display: grid;
+      grid-template-rows: 1fr;
+      transition: grid-template-rows 0.28s ease;
+    }
+    .card.collapsed .card-body { grid-template-rows: 0fr; }
+    .card-body-inner { overflow: hidden; min-height: 0; }
+    .card-content {
+      display: flex;
+      flex-direction: column;
+      gap: 13px;
+      padding: 2px 12px 13px;
+    }
+
+    /* ---------------- Controls ---------------- */
+    .control { display: flex; flex-direction: column; gap: 4px; }
+    .control-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 12.5px;
+    }
+    .control-label .value {
+      color: rgb(var(--accent));
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+      opacity: 0.9;
+    }
+    .hint {
+      margin-top: -2px;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+    }
+
+    /* Range sliders */
+    input[type="range"] {
+      --p: 50%;
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 4px;
+      margin: 8px 0;
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+      background: linear-gradient(
+        to right,
+        rgba(var(--accent), 0.75) 0,
+        rgba(var(--accent), 0.75) var(--p),
+        rgba(var(--accent), 0.15) var(--p),
+        rgba(var(--accent), 0.15) 100%
+      );
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: rgb(var(--accent));
+      border: 2px solid var(--bg);
+      box-shadow: 0 0 0 1px rgba(var(--accent), 0.6), 0 0 10px rgba(var(--accent), 0.8);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover,
+    input[type="range"]:active::-webkit-slider-thumb {
+      transform: scale(1.18);
+      box-shadow: 0 0 0 1px rgba(var(--accent), 0.9), 0 0 16px rgba(var(--accent), 1);
+    }
+    input[type="range"]::-moz-range-track { background: transparent; height: 4px; }
+    input[type="range"]::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: rgb(var(--accent));
+      border: 2px solid var(--bg);
+      box-shadow: 0 0 0 1px rgba(var(--accent), 0.6), 0 0 10px rgba(var(--accent), 0.8);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    input[type="range"]::-moz-range-thumb:hover {
+      transform: scale(1.18);
+      box-shadow: 0 0 0 1px rgba(var(--accent), 0.9), 0 0 16px rgba(var(--accent), 1);
+    }
+    input[type="range"]:focus-visible { box-shadow: 0 0 0 3px rgba(var(--accent), 0.25); }
+
+    /* Toggle switches */
+    .switch-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12.5px;
+      cursor: pointer;
+      padding: 2px 0;
+    }
+    .switch {
+      position: relative;
+      display: inline-block;
+      flex-shrink: 0;
+      width: 40px;
+      height: 22px;
+    }
+    .switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+    .switch .track {
+      position: absolute;
+      inset: 0;
+      border-radius: 11px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(var(--accent), 0.25);
+      transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .switch .knob {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: rgba(200, 220, 240, 0.7);
+      transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s ease, box-shadow 0.2s ease;
+    }
+    .switch input:checked + .track {
+      background: rgba(var(--accent), 0.35);
+      border-color: rgba(var(--accent), 0.75);
+      box-shadow: 0 0 12px rgba(var(--accent), 0.35);
+    }
+    .switch input:checked + .track .knob {
+      transform: translateX(18px);
+      background: #fff;
+      box-shadow: 0 0 8px rgba(var(--accent), 0.9);
+    }
+    .switch input:focus-visible + .track { box-shadow: 0 0 0 3px rgba(var(--accent), 0.4); }
+
+    /* Action button */
+    .action-btn {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 130, 90, 0.5);
+      background: linear-gradient(135deg, rgba(255, 120, 70, 0.28), rgba(255, 60, 130, 0.28));
+      color: #fff;
+      font: inherit;
+      font-size: 12.5px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+    }
+    .action-btn:hover {
+      border-color: rgba(255, 150, 110, 0.9);
+      background: linear-gradient(135deg, rgba(255, 120, 70, 0.42), rgba(255, 60, 130, 0.42));
+      box-shadow: 0 0 18px rgba(255, 120, 80, 0.4);
+      transform: translateY(-1px);
+    }
+    .action-btn:active { transform: translateY(0) scale(0.98); }
+    .action-btn:focus-visible { outline: 2px solid rgba(255, 150, 110, 0.8); outline-offset: 2px; }
+
+    /* ---------------- Tooltip (real DOM node, outside the panel) ---------------- */
+    .tooltip {
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: max-content;
+      max-width: 230px;
+      padding: 8px 11px;
+      background: rgba(12, 16, 26, 0.96);
+      border: 1px solid rgba(var(--accent), 0.35);
+      border-radius: 8px;
+      color: #dfe9f3;
+      font-size: 12px;
+      line-height: 1.45;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateX(-4px);
+      transition: opacity 0.15s ease, transform 0.15s ease;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5), 0 0 14px rgba(var(--accent), 0.15);
+    }
+    .tooltip.visible { opacity: 1; transform: none; }
+    .tooltip::before {
+      content: "";
+      position: absolute;
+      left: -6px;
+      top: var(--arrow-y, 50%);
+      width: 10px;
+      height: 10px;
+      background: inherit;
+      border-left: 1px solid rgba(var(--accent), 0.35);
+      border-bottom: 1px solid rgba(var(--accent), 0.35);
+      transform: translateY(-50%) rotate(45deg);
+    }
+    .tooltip.left { transform: translateX(4px); }
+    .tooltip.left.visible { transform: none; }
+    .tooltip.left::before {
+      left: auto;
+      right: -6px;
+      border-left: none;
+      border-bottom: none;
+      border-right: 1px solid rgba(var(--accent), 0.35);
+      border-top: 1px solid rgba(var(--accent), 0.35);
+    }
+  </style>
+</head>
+<body>
+
+
+<style>
+  
+  @media (max-width: 768px) {
+    #panel, #controls, #controlPanel, #control-panel, .controls, .sidebar {
+      width: calc(100vw - 32px) !important;
+      max-width: none !important;
+      left: 16px !important;
+      right: 16px !important;
+      max-height: 60vh !important;
+      font-size: 0.85rem !important;
+    }
+  }
+
+  .sim-panel-toggle {
+    display: none;
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    z-index: 9999;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid rgba(100,200,255,0.2);
+    background: rgba(10, 14, 24, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: rgba(200,220,240,0.8);
+    font-size: 1.2rem;
+    cursor: pointer;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+    align-items: center;
+    justify-content: center;
+  }
+  .sim-panel-toggle:active { transform: scale(0.92); }
+
+  @media (max-width: 768px) {
+    
+  @media (max-width: 768px) {
+    #panel, #controls, #controlPanel, #control-panel, .controls, .sidebar {
+      width: calc(100vw - 32px) !important;
+      max-width: none !important;
+      left: 16px !important;
+      right: 16px !important;
+      max-height: 60vh !important;
+      font-size: 0.85rem !important;
+    }
+  }
+
+  .sim-panel-toggle { display: flex; }
+    #panel.panel-hidden { display: none !important; }
+  }
+
+  /* Embed mode: hide toggle + panel */
+  .embed-mode .sim-panel-toggle { display: none !important; }
+  .embed-mode #panel { display: none !important; }
+</style>
+<script>
+  (function() {
+    var isEmbed = new URLSearchParams(location.search).has('embed');
+    if (isEmbed) document.documentElement.classList.add('embed-mode');
+    
+    // Listen for parent show/hide messages
+    window.addEventListener('message', function(e) {
+      if (e.data === 'show-panel') {
+        document.documentElement.classList.remove('embed-mode');
+      } else if (e.data === 'hide-panel') {
+        document.documentElement.classList.add('embed-mode');
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+      var btn = document.createElement('button');
+      btn.className = 'sim-panel-toggle';
+      btn.textContent = isEmbed ? '⚙️' : '✕';
+      btn.title = 'Toggle controls';
+      document.body.appendChild(btn);
+      
+      var panel = document.querySelector('#panel');
+      if (!panel) return;
+      if (!isEmbed) {
+        // Standalone on mobile: panel visible initially
+      }
+      
+      btn.addEventListener('click', function() {
+        panel.classList.toggle('panel-hidden');
+        if (isEmbed) {
+          document.documentElement.classList.toggle('embed-mode');
+        }
+        btn.textContent = panel.classList.contains('panel-hidden') || 
+          document.documentElement.classList.contains('embed-mode') ? '⚙️' : '✕';
+      });
+    });
+  })();
+</script>
+
+  <canvas id="canvas"></canvas>
+
+  <aside class="panel" id="panel" aria-label="Simulation controls">
+    <h1 class="panel-title">Polygon Physics</h1>
+    <p class="panel-sub">Hover a control for details.</p>
+
+    <!-- ========== Shape ========== -->
+    <section class="card" id="card-shape">
+      <button class="card-header" type="button" aria-expanded="true" aria-controls="body-shape">
+        <span>Shape</span><span class="chevron" aria-hidden="true"></span>
+      </button>
+      <div class="card-body" id="body-shape">
+        <div class="card-body-inner">
+          <div class="card-content">
+            <div class="control" data-tip="Number of polygon sides. Fewer sides create sharper corners that trap and fling balls. Changing this respawns the balls.">
+              <div class="control-label"><span>Sides</span><span class="value" id="sidesVal">8</span></div>
+              <input type="range" id="sides" min="3" max="20" step="1" value="8" aria-label="Sides">
+              <div class="hint" id="shapeName">Octagon</div>
+            </div>
+            <div class="control" data-tip="How fast the frame rotates (rad/s). Negative values spin it in reverse. Moving walls drag and fling the balls they touch.">
+              <div class="control-label"><span>Spin Speed</span><span class="value" id="spinVal">0.8</span></div>
+              <input type="range" id="spin" min="-3" max="3" step="0.1" value="0.8" aria-label="Spin speed">
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== Balls ========== -->
+    <section class="card" id="card-balls">
+      <button class="card-header" type="button" aria-expanded="true" aria-controls="body-balls">
+        <span>Balls</span><span class="chevron" aria-hidden="true"></span>
+      </button>
+      <div class="card-body" id="body-balls">
+        <div class="card-body-inner">
+          <div class="card-content">
+            <div class="control" data-tip="Total number of balls in the frame. Changing this respawns all balls.">
+              <div class="control-label"><span>Count</span><span class="value" id="countVal">40</span></div>
+              <input type="range" id="count" min="1" max="200" step="1" value="40" aria-label="Ball count">
+            </div>
+            <div class="control" data-tip="Maximum random radius added to the base size of 6px. Bigger balls are heavier and shove smaller ones around. Changing this respawns all balls.">
+              <div class="control-label"><span>Size Variation</span><span class="value" id="sizeVarVal">+12</span></div>
+              <input type="range" id="sizeVar" min="0" max="40" step="1" value="12" aria-label="Size variation">
+            </div>
+            <div class="control" data-tip="Wall restitution. 0 = balls stick to walls, 1 = perfectly elastic, above 1 adds energy on every bounce.">
+              <div class="control-label"><span>Bounciness</span><span class="value" id="bounceVal">0.80</span></div>
+              <input type="range" id="bounce" min="0" max="1.2" step="0.01" value="0.8" aria-label="Bounciness">
+            </div>
+            <div class="control" data-tip="When on, balls collide with each other using mass-based impulses. When off, they pass straight through one another.">
+              <label class="switch-row">
+                <span class="control-name">Ball Collisions</span>
+                <span class="switch">
+                  <input type="checkbox" id="collisions" checked>
+                  <span class="track"><span class="knob"></span></span>
+                </span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== Physics ========== -->
+    <section class="card" id="card-physics">
+      <button class="card-header" type="button" aria-expanded="true" aria-controls="body-physics">
+        <span>Physics</span><span class="chevron" aria-hidden="true"></span>
+      </button>
+      <div class="card-body" id="body-physics">
+        <div class="card-body-inner">
+          <div class="card-content">
+            <div class="control" data-tip="Direction gravity pulls, in degrees. 90° is straight down, 270° is straight up.">
+              <div class="control-label"><span>Gravity Angle</span><span class="value" id="gravAngleVal">90° ↓</span></div>
+              <input type="range" id="gravAngle" min="0" max="360" step="1" value="90" aria-label="Gravity angle">
+            </div>
+            <div class="control" data-tip="How strongly gravity accelerates the balls (px/s²). Set to 0 for zero-G.">
+              <div class="control-label"><span>Gravity Strength</span><span class="value" id="gravityVal">600</span></div>
+              <input type="range" id="gravity" min="0" max="1500" step="10" value="600" aria-label="Gravity strength">
+            </div>
+            <div class="control" data-tip="Scales the physics time step. Slow things to a crawl or speed them up. 0 pauses the simulation.">
+              <div class="control-label"><span>Time Scale</span><span class="value" id="timeScaleVal">1.0×</span></div>
+              <input type="range" id="timeScale" min="0" max="3" step="0.05" value="1" aria-label="Time scale">
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== Effects ========== -->
+    <section class="card" id="card-effects">
+      <button class="card-header" type="button" aria-expanded="true" aria-controls="body-effects">
+        <span>Effects</span><span class="chevron" aria-hidden="true"></span>
+      </button>
+      <div class="card-body" id="body-effects">
+        <div class="card-body-inner">
+          <div class="card-content">
+            <div class="control" data-tip="Leave fading streaks behind moving balls by only partially clearing the canvas each frame.">
+              <label class="switch-row">
+                <span class="control-name">Motion Trails</span>
+                <span class="switch">
+                  <input type="checkbox" id="trails">
+                  <span class="track"><span class="knob"></span></span>
+                </span>
+              </label>
+            </div>
+            <div class="control" data-tip="Blast every ball with a random 300–800 px/s impulse in a random direction.">
+              <button class="action-btn" id="explode" type="button">💥 Explode</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </aside>
+
+  <!-- Tooltip lives at body level so the panel's overflow can't clip it -->
+  <div id="tooltip" class="tooltip" role="tooltip"></div>
+
+  <script src="sim.js"></script>
+</body>
+</html>
