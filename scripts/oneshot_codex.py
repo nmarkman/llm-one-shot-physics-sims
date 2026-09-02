@@ -48,7 +48,10 @@ def make_home(tmp):
     home, fake_home = tmp / "codex-home", tmp / "home"
     home.mkdir()
     fake_home.mkdir()
-    (home / "auth.json").symlink_to(Path.home() / ".codex" / "auth.json")
+    auth = Path.home() / ".codex" / "auth.json"
+    if not auth.exists():
+        sys.exit(f"{auth} not found; run `codex login` first")
+    (home / "auth.json").symlink_to(auth)
     (home / "config.toml").write_text("")
     return home, fake_home
 
