@@ -124,13 +124,41 @@
     font-weight: 600;
   }
 
+  #model-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .model-group {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .group-label {
+    flex-shrink: 0;
+    width: 3.25rem;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+  }
+
+  .group-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+
   .model-btn {
-    padding: 0.4rem 0.85rem;
+    padding: 0.3rem 0.65rem;
     border-radius: 5px;
     border: 1px solid var(--border);
     background: transparent;
     color: var(--text-muted);
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.15s ease;
@@ -499,6 +527,12 @@
     .sep { display: none; }
     .standalone-btn { font-size: 0.75rem; padding: 0.45rem 0.7rem; }
     .view-toggle button { padding: 0.45rem 0.75rem; }
+    .model-group { flex-direction: column; align-items: stretch; gap: 0.2rem; }
+    .group-label { width: auto; }
+    .controls-left, #model-buttons, .model-group, .group-chips { min-width: 0; max-width: 100%; width: 100%; }
+    .group-chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+    .group-chips::-webkit-scrollbar { display: none; }
+    .group-chips .model-btn { white-space: nowrap; flex-shrink: 0; }
 
     .viewport {
       flex-direction: column;
@@ -643,30 +677,29 @@
 
 <script>
 const MODELS = [
-  { id: 'fable-5-1',                  name: 'Claude Fable 5.1',             provider: 'Anthropic',    type: 'model', foundation: null,                  path: 'sims/fable-5-1/' },
-  { id: 'fable-5',                    name: 'Claude Fable 5',               provider: 'Anthropic',    type: 'model', foundation: null,                  path: 'sims/fable-5/' },
-  { id: 'opus-5',                     name: 'Claude Opus 5',                provider: 'Anthropic',    type: 'model', foundation: null,                  path: 'sims/opus-5/' },
-  { id: 'sonnet-5',                   name: 'Claude Sonnet 5',              provider: 'Anthropic',    type: 'model', foundation: null,                  path: 'sims/sonnet-5/' },
-  { id: 'opus-4-8',                   name: 'Claude Opus 4.8',              provider: 'Anthropic',    type: 'model', foundation: null,                  path: 'sims/opus-4-8/' },
-  { id: 'opus-4-7',                   name: 'Claude Opus 4.7',              provider: 'Anthropic',    type: 'model', foundation: null,                  path: 'sims/opus-4-7/' },
-  { id: 'opus-4-6',                   name: 'Claude Opus 4.6',              provider: 'Anthropic',    type: 'model', foundation: null,                  path: 'sims/opus-4-6/' },
-  { id: 'sonnet-4-6',                 name: 'Claude Sonnet 4.6',            provider: 'Anthropic',    type: 'model', foundation: null,                  path: 'sims/sonnet-4-6/' },
-  { id: 'opus-4-5',                   name: 'Claude Opus 4.5',              provider: 'Anthropic',    type: 'model', foundation: null,                  path: 'sims/opus-4-5/' },
-  { id: 'sonnet-4-5',                 name: 'Claude Sonnet 4.5',            provider: 'Anthropic',    type: 'model', foundation: null,                  path: 'sims/sonnet-4-5/' },
-  { id: 'haiku-4-5',                  name: 'Claude Haiku 4.5',             provider: 'Anthropic',    type: 'model', foundation: null,                  path: 'sims/haiku-4-5/' },
-  { id: 'opus-4-1',                   name: 'Claude Opus 4.1',              provider: 'Anthropic',    type: 'model', foundation: null,                  path: 'sims/opus-4-1/' },
-  { id: 'opus-4',                     name: 'Claude Opus 4',                provider: 'Anthropic',    type: 'model', foundation: null,                  path: 'sims/opus-4/' },
-  { id: 'sonnet-4',                   name: 'Claude Sonnet 4',              provider: 'Anthropic',    type: 'model', foundation: null,                  path: 'sims/sonnet-4/' },
-  { id: 'haiku-3',                    name: 'Claude 3 Haiku',               provider: 'Anthropic',    type: 'model', foundation: null,                  path: 'sims/haiku-3/' },
-  { id: 'codex-gpt-5-6-sol',          name: 'Codex (GPT-5.6-Sol)',          provider: 'OpenAI',       type: 'tool', foundation: 'GPT-5.6-Sol',         path: 'sims/codex-gpt-5-6-sol/' },
-  { id: 'codex-gpt-5-6-terra',        name: 'Codex (GPT-5.6-Terra)',        provider: 'OpenAI',       type: 'tool', foundation: 'GPT-5.6-Terra',       path: 'sims/codex-gpt-5-6-terra/' },
-  { id: 'codex-gpt-5-6-luna',         name: 'Codex (GPT-5.6-Luna)',         provider: 'OpenAI',       type: 'tool', foundation: 'GPT-5.6-Luna',        path: 'sims/codex-gpt-5-6-luna/' },
-  { id: 'codex-gpt-5-5',              name: 'Codex (GPT-5.5)',              provider: 'OpenAI',       type: 'tool', foundation: 'GPT-5.5',             path: 'sims/codex-gpt-5-5/' },
-  { id: 'codex-gpt-5-4',              name: 'Codex (GPT-5.4)',              provider: 'OpenAI',       type: 'tool', foundation: 'GPT-5.4',             path: 'sims/codex-gpt-5-4/' },
-  { id: 'codex-gpt-5-4-mini',         name: 'Codex (GPT-5.4-Mini)',         provider: 'OpenAI',       type: 'tool', foundation: 'GPT-5.4-Mini',        path: 'sims/codex-gpt-5-4-mini/' },
-  { id: 'codex-gpt-5-3-codex-spark',  name: 'Codex (GPT-5.3-Codex-Spark)',  provider: 'OpenAI',       type: 'tool', foundation: 'GPT-5.3-Codex-Spark', path: 'sims/codex-gpt-5-3-codex-spark/' },
-  { id: 'ampcode',                    name: 'Amp Code',                     provider: 'Sourcegraph',  type: 'tool', foundation: 'Claude Sonnet 4.6',   path: 'sims/ampcode/' },
-  { id: 'droid',                      name: 'Droid',                        provider: 'Factory.ai',   type: 'tool', foundation: null,                  path: 'sims/droid/' },
+  { id: 'fable-5-1', name: 'Claude Fable 5.1', short: 'Fable 5.1', group: 'Claude', provider: 'Anthropic', type: 'model', foundation: null, path: 'sims/fable-5-1/' },
+  { id: 'fable-5', name: 'Claude Fable 5', short: 'Fable 5', group: 'Claude', provider: 'Anthropic', type: 'model', foundation: null, path: 'sims/fable-5/' },
+  { id: 'opus-5', name: 'Claude Opus 5', short: 'Opus 5', group: 'Claude', provider: 'Anthropic', type: 'model', foundation: null, path: 'sims/opus-5/' },
+  { id: 'sonnet-5', name: 'Claude Sonnet 5', short: 'Sonnet 5', group: 'Claude', provider: 'Anthropic', type: 'model', foundation: null, path: 'sims/sonnet-5/' },
+  { id: 'opus-4-8', name: 'Claude Opus 4.8', short: 'Opus 4.8', group: 'Claude', provider: 'Anthropic', type: 'model', foundation: null, path: 'sims/opus-4-8/' },
+  { id: 'opus-4-7', name: 'Claude Opus 4.7', short: 'Opus 4.7', group: 'Claude', provider: 'Anthropic', type: 'model', foundation: null, path: 'sims/opus-4-7/' },
+  { id: 'opus-4-6', name: 'Claude Opus 4.6', short: 'Opus 4.6', group: 'Claude', provider: 'Anthropic', type: 'model', foundation: null, path: 'sims/opus-4-6/' },
+  { id: 'sonnet-4-6', name: 'Claude Sonnet 4.6', short: 'Sonnet 4.6', group: 'Claude', provider: 'Anthropic', type: 'model', foundation: null, path: 'sims/sonnet-4-6/' },
+  { id: 'opus-4-5', name: 'Claude Opus 4.5', short: 'Opus 4.5', group: 'Claude', provider: 'Anthropic', type: 'model', foundation: null, path: 'sims/opus-4-5/' },
+  { id: 'sonnet-4-5', name: 'Claude Sonnet 4.5', short: 'Sonnet 4.5', group: 'Claude', provider: 'Anthropic', type: 'model', foundation: null, path: 'sims/sonnet-4-5/' },
+  { id: 'haiku-4-5', name: 'Claude Haiku 4.5', short: 'Haiku 4.5', group: 'Claude', provider: 'Anthropic', type: 'model', foundation: null, path: 'sims/haiku-4-5/' },
+  { id: 'opus-4-1', name: 'Claude Opus 4.1', short: 'Opus 4.1', group: 'Claude', provider: 'Anthropic', type: 'model', foundation: null, path: 'sims/opus-4-1/' },
+  { id: 'opus-4', name: 'Claude Opus 4', short: 'Opus 4', group: 'Claude', provider: 'Anthropic', type: 'model', foundation: null, path: 'sims/opus-4/' },
+  { id: 'sonnet-4', name: 'Claude Sonnet 4', short: 'Sonnet 4', group: 'Claude', provider: 'Anthropic', type: 'model', foundation: null, path: 'sims/sonnet-4/' },
+  { id: 'codex-gpt-5-6-sol', name: 'Codex (GPT-5.6-Sol)', short: 'GPT-5.6 Sol', group: 'Codex', provider: 'OpenAI', type: 'tool', foundation: 'GPT-5.6-Sol', path: 'sims/codex-gpt-5-6-sol/' },
+  { id: 'codex-gpt-5-6-terra', name: 'Codex (GPT-5.6-Terra)', short: 'GPT-5.6 Terra', group: 'Codex', provider: 'OpenAI', type: 'tool', foundation: 'GPT-5.6-Terra', path: 'sims/codex-gpt-5-6-terra/' },
+  { id: 'codex-gpt-5-6-luna', name: 'Codex (GPT-5.6-Luna)', short: 'GPT-5.6 Luna', group: 'Codex', provider: 'OpenAI', type: 'tool', foundation: 'GPT-5.6-Luna', path: 'sims/codex-gpt-5-6-luna/' },
+  { id: 'codex-gpt-5-5', name: 'Codex (GPT-5.5)', short: 'GPT-5.5', group: 'Codex', provider: 'OpenAI', type: 'tool', foundation: 'GPT-5.5', path: 'sims/codex-gpt-5-5/' },
+  { id: 'codex-gpt-5-4', name: 'Codex (GPT-5.4)', short: 'GPT-5.4', group: 'Codex', provider: 'OpenAI', type: 'tool', foundation: 'GPT-5.4', path: 'sims/codex-gpt-5-4/' },
+  { id: 'codex-gpt-5-4-mini', name: 'Codex (GPT-5.4-Mini)', short: 'GPT-5.4 Mini', group: 'Codex', provider: 'OpenAI', type: 'tool', foundation: 'GPT-5.4-Mini', path: 'sims/codex-gpt-5-4-mini/' },
+  { id: 'codex-gpt-5-3-codex-spark', name: 'Codex (GPT-5.3-Codex-Spark)', short: 'GPT-5.3 Codex Spark', group: 'Codex', provider: 'OpenAI', type: 'tool', foundation: 'GPT-5.3-Codex-Spark', path: 'sims/codex-gpt-5-3-codex-spark/' },
+  { id: 'ampcode', name: 'Amp Code', short: 'Amp Code', group: 'Tools', provider: 'Sourcegraph', type: 'tool', foundation: 'Claude Sonnet 4.6', path: 'sims/ampcode/' },
+  { id: 'droid', name: 'Droid', short: 'Droid', group: 'Tools', provider: 'Factory.ai', type: 'tool', foundation: null, path: 'sims/droid/' },
 ];
 
 let selected = [MODELS[0].id];
@@ -676,14 +709,27 @@ const viewport = document.getElementById('viewport');
 const btnContainer = document.getElementById('model-buttons');
 const standaloneLink = document.getElementById('standalone-link');
 
-// Build model buttons
-MODELS.forEach(m => {
-  const btn = document.createElement('button');
-  btn.className = 'model-btn';
-  btn.dataset.id = m.id;
-  btn.textContent = m.name;
-  btn.addEventListener('click', () => toggleModel(m.id));
-  btnContainer.appendChild(btn);
+// Build model buttons, one labeled row per family
+[...new Set(MODELS.map(m => m.group))].forEach(group => {
+  const rowEl = document.createElement('div');
+  rowEl.className = 'model-group';
+  const label = document.createElement('span');
+  label.className = 'group-label';
+  label.textContent = group;
+  rowEl.appendChild(label);
+  const chips = document.createElement('div');
+  chips.className = 'group-chips';
+  MODELS.filter(m => m.group === group).forEach(m => {
+    const btn = document.createElement('button');
+    btn.className = 'model-btn';
+    btn.dataset.id = m.id;
+    btn.textContent = m.short;
+    btn.title = m.name;
+    btn.addEventListener('click', () => toggleModel(m.id));
+    chips.appendChild(btn);
+  });
+  rowEl.appendChild(chips);
+  btnContainer.appendChild(rowEl);
 });
 
 // View toggle
