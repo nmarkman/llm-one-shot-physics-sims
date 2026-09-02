@@ -60,7 +60,13 @@ def run(model, prompt, effort, outdir):
 
 
 def extract(model, outdir, dry):
-    d = json.load(open(outdir / f"{model}.json"))
+    out_path, err_path = outdir / f"{model}.json", outdir / f"{model}.err"
+    try:
+        d = json.loads(out_path.read_text())
+    except (OSError, ValueError) as e:
+        err = err_path.read_text().strip() if err_path.exists() else ""
+        print(f"\n== {model}: FAILED, no valid JSON from claude ({e}). Raw output: {out_path}" + (f"\n   stderr: {err[:300]}" if err else ""))
+        return
     md = d.get("result") or ""
     blocks = [(classify(lang, body), body) for _, lang, body in FENCE.findall(md)]
     html = max((b for k, b in blocks if k == "html"), key=len, default=None)
