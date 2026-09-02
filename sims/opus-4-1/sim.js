@@ -1,3 +1,9 @@
+// Fix applied after generation: the original appended a hex alpha suffix to an hsl() string
+// (e.g. "hsl(152, 70%, 60%)40"), which is not a valid color and threw on every frame.
+function withAlpha(hsl, alpha) {
+    return hsl.replace('hsl(', 'hsla(').replace(')', `, ${alpha})`);
+}
+
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const tooltip = document.getElementById('tooltip');
@@ -83,7 +89,7 @@ class Ball {
     draw() {
         // Glow
         const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.radius * 2);
-        gradient.addColorStop(0, this.color + '40');
+        gradient.addColorStop(0, withAlpha(this.color, 0.25));
         gradient.addColorStop(1, 'transparent');
         ctx.fillStyle = gradient;
         ctx.beginPath();
