@@ -282,12 +282,12 @@
   }
 
   .sim-panel-toggle { display: flex; }
-    .panel.panel-hidden { display: none !important; }
+    .control-panel.control-panel-hidden { display: none !important; }
   }
 
   /* Embed mode: hide toggle + panel */
   .embed-mode .sim-panel-toggle { display: none !important; }
-  .embed-mode .panel { display: none !important; }
+  .embed-mode .control-panel { display: none !important; }
 </style>
 <script>
   (function() {
@@ -310,7 +310,7 @@
       btn.title = 'Toggle controls';
       document.body.appendChild(btn);
       
-      var panel = document.querySelector('.panel');
+      var panel = document.querySelector('.control-panel');
       if (!panel) return;
       if (!isEmbed) {
         // Standalone on mobile: panel visible initially
