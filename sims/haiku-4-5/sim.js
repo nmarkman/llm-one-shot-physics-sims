@@ -1,3 +1,9 @@
+// Fix applied after generation: the original appended a hex alpha suffix to an hsl() string
+// (e.g. "hsl(22, 70%, 50%)88"), which is not a valid color and threw on every frame.
+function withAlpha(hsl, alpha) {
+    return hsl.replace('hsl(', 'hsla(').replace(')', `, ${alpha})`);
+}
+
 // Physics Simulation Engine
 
 const canvas = document.getElementById('canvas');
@@ -84,7 +90,10 @@ function getSignedDistance(point, edge) {
     const py = point.y - edge.v1.y;
     const cross = px * dy - py * dx;
     const len = Math.sqrt(dx * dx + dy * dy);
-    return cross / len;
+    // Fix applied after generation: the original returned cross / len, which is negative for
+    // interior points, so every ball registered as penetrating every edge and got pushed across
+    // the polygon each substep until positions overflowed. Negating restores inside = positive.
+    return -cross / len;
 }
 
 function dotProduct(a, b) {
@@ -280,7 +289,7 @@ function render() {
             if (ball.trail.length > 30) ball.trail.shift();
 
             if (ball.trail.length > 1) {
-                trailCtx.strokeStyle = ball.color + '33';
+                trailCtx.strokeStyle = withAlpha(ball.color, 0.2);
                 trailCtx.lineWidth = ball.radius * 1.5;
                 trailCtx.lineCap = 'round';
                 trailCtx.lineJoin = 'round';
@@ -298,7 +307,7 @@ function render() {
             ball.x - 2, ball.y - 2, 0,
             ball.x, ball.y, ball.radius
         );
-        gradient.addColorStop(0, ball.color + '88');
+        gradient.addColorStop(0, withAlpha(ball.color, 0.53));
         gradient.addColorStop(1, ball.color);
         ctx.fillStyle = gradient;
         ctx.beginPath();
