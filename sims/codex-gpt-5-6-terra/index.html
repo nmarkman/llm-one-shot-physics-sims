@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Codex (GPT-5.6-Terra)</title>
+  <style>
+    :root { color-scheme: dark; --cyan: rgb(100, 200, 255); --edge: rgba(100, 200, 255, .2); }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #0a0a0f; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    canvas { display: block; width: 100vw; height: 100vh; }
+    .panel {
+      position: fixed; z-index: 2; top: 18px; left: 18px; width: min(348px, calc(100vw - 36px));
+      max-height: calc(100vh - 36px); overflow-y: auto; padding: 12px;
+      background: rgba(10, 15, 25, .68); border: 1px solid rgba(100, 200, 255, .25);
+      border-radius: 18px; box-shadow: 0 16px 42px rgba(0, 0, 0, .38), inset 0 1px rgba(255,255,255,.04);
+      backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); scrollbar-color: rgba(100, 200, 255, .35) transparent;
+    }
+    .title { margin: 2px 5px 11px; font-size: 14px; letter-spacing: .16em; color: #d7f2ff; text-transform: uppercase; }
+    .section { margin: 8px 0; overflow: hidden; border: 1px solid rgba(100, 200, 255, .13); border-radius: 13px; background: rgba(255,255,255,.025); transition: border-color .2s, background .2s; }
+    .section:hover { border-color: rgba(100, 200, 255, .42); background: rgba(100, 200, 255, .045); }
+    .section-header { width: 100%; border: 0; display: flex; align-items: center; justify-content: space-between; padding: 11px 12px; color: #d9f5ff; background: transparent; font: 650 13px/1 inherit; letter-spacing: .05em; cursor: pointer; text-align: left; }
+    .chevron { color: var(--cyan); font-size: 16px; transition: transform .2s ease; }
+    .section.collapsed .chevron { transform: rotate(-90deg); }
+    .section-body { padding: 1px 12px 11px; }
+    .section.collapsed .section-body { display: none; }
+    .control { position: relative; padding: 8px 0 7px; border-bottom: 1px solid rgba(255,255,255,.055); }
+    .control:last-child { border-bottom: 0; }
+    .control-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 7px; }
+    label, .label { color: rgba(230,245,255,.84); font-size: 12px; }
+    output { color: var(--cyan); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .shape-name { min-height: 14px; margin-top: 5px; color: rgba(175, 225, 255, .66); font-size: 11px; }
+    input[type="range"] { appearance: none; -webkit-appearance: none; width: 100%; height: 4px; margin: 5px 0 0; border-radius: 4px; background: linear-gradient(90deg, rgba(100,200,255,.7) 0 var(--fill, 50%), rgba(255,255,255,.15) var(--fill, 50%) 100%); outline: none; cursor: pointer; }
+    input[type="range"]::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: var(--cyan); border: 2px solid #e8faff; box-shadow: 0 0 10px rgba(100, 200, 255, .95); }
+    input[type="range"]::-moz-range-thumb { width: 11px; height: 11px; border-radius: 50%; background: var(--cyan); border: 2px solid #e8faff; box-shadow: 0 0 10px rgba(100, 200, 255, .95); }
+    .switch { position: relative; width: 38px; height: 21px; flex: 0 0 auto; cursor: pointer; }
+    .switch input { width: 0; height: 0; opacity: 0; }
+    .slider-switch { position: absolute; inset: 0; border: 1px solid rgba(100,200,255,.33); border-radius: 20px; background: rgba(255,255,255,.11); transition: .2s; }
+    .slider-switch::before { content: ""; position: absolute; width: 15px; height: 15px; left: 2px; top: 2px; border-radius: 50%; background: #cbd6dd; transition: .2s; }
+    .switch input:checked + .slider-switch { background: rgba(43, 172, 242, .55); border-color: rgba(160,235,255,.8); box-shadow: 0 0 12px rgba(100,200,255,.28); }
+    .switch input:checked + .slider-switch::before { transform: translateX(17px); background: #f0fbff; }
+    .action { width: 100%; padding: 9px 12px; border: 1px solid rgba(130, 220, 255, .6); border-radius: 9px; background: linear-gradient(135deg, rgba(18, 129, 184, .72), rgba(84, 191, 255, .35)); color: #f0fbff; box-shadow: 0 0 16px rgba(100, 200, 255, .16); font: 650 12px/1 inherit; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; transition: transform .15s, box-shadow .15s; }
+    .action:hover { transform: translateY(-1px); box-shadow: 0 0 22px rgba(100, 200, 255, .38); }
+    #tooltip { position: fixed; z-index: 10; max-width: 210px; padding: 8px 10px; border: 1px solid rgba(130,220,255,.42); border-radius: 8px; background: rgba(7, 12, 20, .94); color: #ddf6ff; box-shadow: 0 8px 24px rgba(0,0,0,.35); backdrop-filter: blur(10px); font-size: 11px; line-height: 1.35; pointer-events: none; display: none; }
+    @media (max-width: 540px) { .panel { top: 10px; left: 10px; width: min(310px, calc(100vw - 20px)); max-height: calc(100vh - 20px); } }
+  </style>
+</head>
+<body>
+
+
+<style>
+  
+  @media (max-width: 768px) {
+    #panel, #controls, #controlPanel, #control-panel, .controls, .sidebar {
+      width: calc(100vw - 32px) !important;
+      max-width: none !important;
+      left: 16px !important;
+      right: 16px !important;
+      max-height: 60vh !important;
+      font-size: 0.85rem !important;
+    }
+  }
+
+  .sim-panel-toggle {
+    display: none;
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    z-index: 9999;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid rgba(100,200,255,0.2);
+    background: rgba(10, 14, 24, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: rgba(200,220,240,0.8);
+    font-size: 1.2rem;
+    cursor: pointer;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+    align-items: center;
+    justify-content: center;
+  }
+  .sim-panel-toggle:active { transform: scale(0.92); }
+
+  @media (max-width: 768px) {
+    
+  @media (max-width: 768px) {
+    #panel, #controls, #controlPanel, #control-panel, .controls, .sidebar {
+      width: calc(100vw - 32px) !important;
+      max-width: none !important;
+      left: 16px !important;
+      right: 16px !important;
+      max-height: 60vh !important;
+      font-size: 0.85rem !important;
+    }
+  }
+
+  .sim-panel-toggle { display: flex; }
+    .panel.panel-hidden { display: none !important; }
+  }
+
+  /* Embed mode: hide toggle + panel */
+  .embed-mode .sim-panel-toggle { display: none !important; }
+  .embed-mode .panel { display: none !important; }
+</style>
+<script>
+  (function() {
+    var isEmbed = new URLSearchParams(location.search).has('embed');
+    if (isEmbed) document.documentElement.classList.add('embed-mode');
+    
+    // Listen for parent show/hide messages
+    window.addEventListener('message', function(e) {
+      if (e.data === 'show-panel') {
+        document.documentElement.classList.remove('embed-mode');
+      } else if (e.data === 'hide-panel') {
+        document.documentElement.classList.add('embed-mode');
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+      var btn = document.createElement('button');
+      btn.className = 'sim-panel-toggle';
+      btn.textContent = isEmbed ? '⚙️' : '✕';
+      btn.title = 'Toggle controls';
+      document.body.appendChild(btn);
+      
+      var panel = document.querySelector('.panel');
+      if (!panel) return;
+      if (!isEmbed) {
+        // Standalone on mobile: panel visible initially
+      }
+      
+      btn.addEventListener('click', function() {
+        panel.classList.toggle('panel-hidden');
+        if (isEmbed) {
+          document.documentElement.classList.toggle('embed-mode');
+        }
+        btn.textContent = panel.classList.contains('panel-hidden') || 
+          document.documentElement.classList.contains('embed-mode') ? '⚙️' : '✕';
+      });
+    });
+  })();
+</script>
+
+  <canvas id="sim" aria-label="Spinning polygon ball simulation"></canvas>
+
+  <aside class="panel" aria-label="Simulation controls">
+    <div class="title">Polygon Physics Lab</div>
+
+    <section class="section">
+      <button class="section-header" type="button" aria-expanded="true"><span>SHAPE</span><span class="chevron">⌄</span></button>
+      <div class="section-body">
+        <div class="control" data-tooltip="Changes the number of sides on the spinning containment frame.">
+          <div class="control-row"><label for="sides">Sides</label><output id="sidesOut"></output></div>
+          <input id="sides" type="range" min="3" max="20" step="1" value="8" />
+          <div id="shapeName" class="shape-name"></div>
+        </div>
+        <div class="control" data-tooltip="Angular speed of the frame. Negative values spin it in reverse.">
+          <div class="control-row"><label for="spin">Spin Speed</label><output id="spinOut"></output></div>
+          <input id="spin" type="range" min="-3" max="3" step="0.05" value="0.85" />
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <button class="section-header" type="button" aria-expanded="true"><span>BALLS</span><span class="chevron">⌄</span></button>
+      <div class="section-body">
+        <div class="control" data-tooltip="Number of balls in the polygon. This redistributes the set of balls.">
+          <div class="control-row"><label for="count">Count</label><output id="countOut"></output></div>
+          <input id="count" type="range" min="1" max="200" step="1" value="40" />
+        </div>
+        <div class="control" data-tooltip="Random radius added to the 6 pixel base ball size. This redistributes the set of balls.">
+          <div class="control-row"><label for="sizeVariation">Size Variation</label><output id="sizeVariationOut"></output></div>
+          <input id="sizeVariation" type="range" min="0" max="40" step="1" value="17" />
+        </div>
+        <div class="control" data-tooltip="How much speed a ball keeps when it hits a polygon wall.">
+          <div class="control-row"><label for="bounciness">Bounciness</label><output id="bouncinessOut"></output></div>
+          <input id="bounciness" type="range" min="0" max="1.2" step="0.01" value="0.86" />
+        </div>
+        <div class="control" data-tooltip="Turns ball-to-ball collision detection and response on or off.">
+          <div class="control-row"><span class="label">Ball Collisions</span><label class="switch"><input id="collisions" type="checkbox" checked /><span class="slider-switch"></span></label></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <button class="section-header" type="button" aria-expanded="true"><span>PHYSICS</span><span class="chevron">⌄</span></button>
+      <div class="section-body">
+        <div class="control" data-tooltip="Direction gravity pulls. The arrow shows the current screen direction.">
+          <div class="control-row"><label for="gravityAngle">Gravity Angle</label><output id="gravityAngleOut"></output></div>
+          <input id="gravityAngle" type="range" min="0" max="360" step="1" value="0" />
+        </div>
+        <div class="control" data-tooltip="Strength of acceleration due to gravity. Set to zero for zero-G.">
+          <div class="control-row"><label for="gravityStrength">Gravity Strength</label><output id="gravityStrengthOut"></output></div>
+          <input id="gravityStrength" type="range" min="0" max="1500" step="10" value="780" />
+        </div>
+        <div class="control" data-tooltip="Scales physics time without changing the visual frame rate.">
+          <div class="control-row"><label for="timeScale">Time Scale</label><output id="timeScaleOut"></output></div>
+          <input id="timeScale" type="range" min="0" max="3" step="0.05" value="1" />
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <button class="section-header" type="button" aria-expanded="true"><span>EFFECTS</span><span class="chevron">⌄</span></button>
+      <div class="section-body">
+        <div class="control" data-tooltip="Fades the previous canvas frame instead of clearing it, leaving motion trails.">
+          <div class="control-row"><span class="label">Motion Trails</span><label class="switch"><input id="trails" type="checkbox" /><span class="slider-switch"></span></label></div>
+        </div>
+        <div class="control" data-tooltip="Gives every ball a random, energetic velocity impulse.">
+          <button id="explode" class="action" type="button">Explode</button>
+        </div>
+      </div>
+    </section>
+  </aside>
+  <div id="tooltip" role="tooltip"></div>
+  <script src="sim.js"></script>
+</body>
+</html>

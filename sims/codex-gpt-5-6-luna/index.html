@@ -1,0 +1,655 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0a0a0f" />
+    <title>Codex (GPT-5.6-Luna)</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0a0a0f;
+        --panel: rgba(15, 22, 31, 0.82);
+        --card: rgba(18, 29, 40, 0.62);
+        --line: rgba(100, 200, 255, 0.18);
+        --line-bright: rgba(100, 200, 255, 0.42);
+        --cyan: #8bddff;
+        --cyan-dim: rgba(100, 200, 255, 0.7);
+        --text: #ebf7ff;
+        --muted: #8ca1b1;
+        --faint: #566a7a;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: var(--bg);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+        color: var(--text);
+      }
+
+      body {
+        position: relative;
+      }
+
+      #simulation {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+        background: var(--bg);
+      }
+
+      .control-panel {
+        position: fixed;
+        z-index: 10;
+        top: 18px;
+        left: 18px;
+        width: min(336px, calc(100vw - 36px));
+        max-height: calc(100vh - 36px);
+        padding: 18px;
+        overflow-y: auto;
+        overflow-x: visible;
+        border: 1px solid rgba(100, 200, 255, 0.25);
+        border-radius: 22px;
+        background:
+          linear-gradient(145deg, rgba(31, 50, 66, 0.26), transparent 45%),
+          var(--panel);
+        box-shadow:
+          0 24px 80px rgba(0, 0, 0, 0.4),
+          inset 0 1px rgba(255, 255, 255, 0.05),
+          0 0 0 1px rgba(100, 200, 255, 0.03);
+        backdrop-filter: blur(24px) saturate(130%);
+        -webkit-backdrop-filter: blur(24px) saturate(130%);
+        scrollbar-width: thin;
+        scrollbar-color: rgba(100, 200, 255, 0.38) transparent;
+      }
+
+      .control-panel::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      .control-panel::-webkit-scrollbar-thumb {
+        border-radius: 999px;
+        background: rgba(100, 200, 255, 0.32);
+      }
+
+      .panel-heading {
+        padding: 2px 4px 17px;
+      }
+
+      .eyebrow {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        color: var(--cyan-dim);
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+      }
+
+      .live-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #84e7ff;
+        box-shadow: 0 0 10px #84e7ff;
+      }
+
+      h1 {
+        margin: 9px 0 5px;
+        color: #f1faff;
+        font-size: 25px;
+        font-weight: 650;
+        letter-spacing: -0.04em;
+        line-height: 1;
+      }
+
+      .subtitle {
+        max-width: 245px;
+        margin: 0;
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.5;
+      }
+
+      .control-card {
+        margin-top: 9px;
+        overflow: hidden;
+        border: 1px solid rgba(100, 200, 255, 0.14);
+        border-radius: 15px;
+        background: var(--card);
+        transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+      }
+
+      .control-card:hover {
+        border-color: rgba(100, 200, 255, 0.29);
+        background: rgba(21, 36, 49, 0.7);
+        box-shadow: inset 0 0 24px rgba(100, 200, 255, 0.025);
+      }
+
+      .section-toggle {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 13px 14px 12px;
+        border: 0;
+        color: var(--text);
+        background: transparent;
+        cursor: pointer;
+        font: inherit;
+        text-align: left;
+      }
+
+      .section-title {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+      }
+
+      .section-index {
+        color: var(--cyan-dim);
+        font-family: "SFMono-Regular", Consolas, monospace;
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.07em;
+      }
+
+      .chevron {
+        width: 7px;
+        height: 7px;
+        border-right: 1.5px solid var(--cyan);
+        border-bottom: 1.5px solid var(--cyan);
+        transform: rotate(45deg) translateY(-2px);
+        transition: transform 180ms ease;
+      }
+
+      .section-toggle[aria-expanded="false"] .chevron {
+        transform: rotate(-45deg) translate(-1px, 1px);
+      }
+
+      .section-content {
+        display: grid;
+        gap: 14px;
+        padding: 0 14px 15px;
+      }
+
+      .section-content[hidden] {
+        display: none;
+      }
+
+      .control {
+        display: block;
+      }
+
+      .control-label-row {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 7px;
+      }
+
+      .control-label {
+        color: #c9dbe5;
+        font-size: 11px;
+        font-weight: 600;
+      }
+
+      output {
+        color: var(--cyan);
+        font-family: "SFMono-Regular", Consolas, monospace;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        white-space: nowrap;
+      }
+
+      .shape-name {
+        display: block;
+        margin-top: 5px;
+        color: var(--muted);
+        font-family: "SFMono-Regular", Consolas, monospace;
+        font-size: 9px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      input[type="range"] {
+        width: 100%;
+        height: 16px;
+        margin: 0;
+        padding: 0;
+        appearance: none;
+        -webkit-appearance: none;
+        outline: none;
+        background: transparent;
+        cursor: pointer;
+      }
+
+      input[type="range"]::-webkit-slider-runnable-track {
+        height: 3px;
+        border-radius: 4px;
+        background: linear-gradient(90deg, rgba(100, 200, 255, 0.75), rgba(100, 200, 255, 0.18));
+      }
+
+      input[type="range"]::-moz-range-track {
+        height: 3px;
+        border-radius: 4px;
+        background: linear-gradient(90deg, rgba(100, 200, 255, 0.75), rgba(100, 200, 255, 0.18));
+      }
+
+      input[type="range"]::-webkit-slider-thumb {
+        width: 13px;
+        height: 13px;
+        margin-top: -5px;
+        appearance: none;
+        -webkit-appearance: none;
+        border: 2px solid #b7eeff;
+        border-radius: 50%;
+        background: #5dcfff;
+        box-shadow: 0 0 0 3px rgba(93, 207, 255, 0.13), 0 0 13px rgba(93, 207, 255, 0.8);
+      }
+
+      input[type="range"]::-moz-range-thumb {
+        width: 10px;
+        height: 10px;
+        border: 2px solid #b7eeff;
+        border-radius: 50%;
+        background: #5dcfff;
+        box-shadow: 0 0 0 3px rgba(93, 207, 255, 0.13), 0 0 13px rgba(93, 207, 255, 0.8);
+      }
+
+      input[type="range"]:focus-visible::-webkit-slider-thumb {
+        box-shadow: 0 0 0 4px rgba(93, 207, 255, 0.25), 0 0 15px rgba(93, 207, 255, 0.9);
+      }
+
+      .switch-control {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        min-height: 26px;
+        cursor: pointer;
+      }
+
+      .switch {
+        position: relative;
+        flex: 0 0 auto;
+        width: 36px;
+        height: 20px;
+      }
+
+      .switch input {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        opacity: 0;
+      }
+
+      .switch-track {
+        position: absolute;
+        inset: 0;
+        border: 1px solid rgba(100, 200, 255, 0.25);
+        border-radius: 999px;
+        background: rgba(10, 15, 21, 0.75);
+        transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+      }
+
+      .switch-track::after {
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #71818d;
+        content: "";
+        transition: transform 180ms ease, background 180ms ease, box-shadow 180ms ease;
+      }
+
+      .switch input:checked + .switch-track {
+        border-color: rgba(100, 200, 255, 0.72);
+        background: rgba(46, 139, 187, 0.32);
+        box-shadow: 0 0 13px rgba(100, 200, 255, 0.15);
+      }
+
+      .switch input:checked + .switch-track::after {
+        transform: translateX(16px);
+        background: #9ce8ff;
+        box-shadow: 0 0 9px rgba(100, 220, 255, 0.9);
+      }
+
+      .switch input:focus-visible + .switch-track {
+        outline: 2px solid rgba(139, 221, 255, 0.7);
+        outline-offset: 3px;
+      }
+
+      .action-button {
+        width: 100%;
+        min-height: 38px;
+        border: 1px solid rgba(131, 226, 255, 0.62);
+        border-radius: 10px;
+        color: #dff8ff;
+        background: linear-gradient(135deg, rgba(52, 157, 201, 0.34), rgba(53, 93, 151, 0.2));
+        box-shadow: inset 0 1px rgba(255, 255, 255, 0.08), 0 0 20px rgba(100, 200, 255, 0.08);
+        cursor: pointer;
+        font: 700 10px/1 inherit;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+        transition: transform 160ms ease, background 160ms ease, box-shadow 160ms ease;
+      }
+
+      .action-button:hover {
+        background: linear-gradient(135deg, rgba(64, 181, 229, 0.49), rgba(53, 109, 177, 0.3));
+        box-shadow: inset 0 1px rgba(255, 255, 255, 0.14), 0 0 24px rgba(100, 200, 255, 0.18);
+      }
+
+      .action-button:active {
+        transform: translateY(1px) scale(0.99);
+      }
+
+      .panel-footnote {
+        display: flex;
+        justify-content: space-between;
+        margin: 15px 4px 1px;
+        color: var(--faint);
+        font-family: "SFMono-Regular", Consolas, monospace;
+        font-size: 8px;
+        letter-spacing: 0.09em;
+      }
+
+      #tooltip {
+        position: fixed;
+        z-index: 50;
+        max-width: 220px;
+        padding: 8px 10px;
+        border: 1px solid rgba(126, 219, 255, 0.4);
+        border-radius: 8px;
+        color: #dff6ff;
+        background: rgba(10, 18, 27, 0.95);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.38), 0 0 18px rgba(100, 200, 255, 0.08);
+        font-size: 10px;
+        line-height: 1.4;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(-50%) translateX(-4px);
+        transition: opacity 120ms ease, transform 120ms ease;
+        visibility: hidden;
+      }
+
+      #tooltip.is-visible {
+        opacity: 1;
+        transform: translateY(-50%) translateX(0);
+        visibility: visible;
+      }
+
+      @media (max-width: 620px) {
+        .control-panel {
+          top: 10px;
+          left: 10px;
+          width: min(310px, calc(100vw - 20px));
+          max-height: min(640px, calc(100vh - 20px));
+          padding: 14px;
+          border-radius: 18px;
+        }
+
+        h1 {
+          font-size: 22px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+
+
+<style>
+  
+  @media (max-width: 768px) {
+    #panel, #controls, #controlPanel, #control-panel, .controls, .sidebar {
+      width: calc(100vw - 32px) !important;
+      max-width: none !important;
+      left: 16px !important;
+      right: 16px !important;
+      max-height: 60vh !important;
+      font-size: 0.85rem !important;
+    }
+  }
+
+  .sim-panel-toggle {
+    display: none;
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    z-index: 9999;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid rgba(100,200,255,0.2);
+    background: rgba(10, 14, 24, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: rgba(200,220,240,0.8);
+    font-size: 1.2rem;
+    cursor: pointer;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+    align-items: center;
+    justify-content: center;
+  }
+  .sim-panel-toggle:active { transform: scale(0.92); }
+
+  @media (max-width: 768px) {
+    
+  @media (max-width: 768px) {
+    #panel, #controls, #controlPanel, #control-panel, .controls, .sidebar {
+      width: calc(100vw - 32px) !important;
+      max-width: none !important;
+      left: 16px !important;
+      right: 16px !important;
+      max-height: 60vh !important;
+      font-size: 0.85rem !important;
+    }
+  }
+
+  .sim-panel-toggle { display: flex; }
+    .control-panel.panel-hidden { display: none !important; }
+  }
+
+  /* Embed mode: hide toggle + panel */
+  .embed-mode .sim-panel-toggle { display: none !important; }
+  .embed-mode .control-panel { display: none !important; }
+</style>
+<script>
+  (function() {
+    var isEmbed = new URLSearchParams(location.search).has('embed');
+    if (isEmbed) document.documentElement.classList.add('embed-mode');
+    
+    // Listen for parent show/hide messages
+    window.addEventListener('message', function(e) {
+      if (e.data === 'show-panel') {
+        document.documentElement.classList.remove('embed-mode');
+      } else if (e.data === 'hide-panel') {
+        document.documentElement.classList.add('embed-mode');
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+      var btn = document.createElement('button');
+      btn.className = 'sim-panel-toggle';
+      btn.textContent = isEmbed ? '⚙️' : '✕';
+      btn.title = 'Toggle controls';
+      document.body.appendChild(btn);
+      
+      var panel = document.querySelector('.control-panel');
+      if (!panel) return;
+      if (!isEmbed) {
+        // Standalone on mobile: panel visible initially
+      }
+      
+      btn.addEventListener('click', function() {
+        panel.classList.toggle('panel-hidden');
+        if (isEmbed) {
+          document.documentElement.classList.toggle('embed-mode');
+        }
+        btn.textContent = panel.classList.contains('panel-hidden') || 
+          document.documentElement.classList.contains('embed-mode') ? '⚙️' : '✕';
+      });
+    });
+  })();
+</script>
+
+    <canvas id="simulation" aria-label="Interactive polygon physics simulation"></canvas>
+
+    <aside class="control-panel" aria-label="Simulation controls">
+      <div class="panel-heading">
+        <div class="eyebrow"><span class="live-dot"></span> Live simulation</div>
+        <h1>PolyMotion</h1>
+        <p class="subtitle">A spinning frame. A tiny universe. Every collision resolved in 2D.</p>
+      </div>
+
+      <section class="control-card">
+        <button class="section-toggle" type="button" aria-expanded="true" aria-controls="shape-content">
+          <span class="section-title"><span class="section-index">01</span> Shape</span>
+          <span class="chevron" aria-hidden="true"></span>
+        </button>
+        <div class="section-content" id="shape-content">
+          <div class="control" data-tooltip="Choose how many edges form the spinning frame.">
+            <div class="control-label-row">
+              <label class="control-label" for="sides">Sides</label>
+              <output id="sides-value" for="sides">8</output>
+            </div>
+            <input id="sides" type="range" min="3" max="20" step="1" value="8" />
+            <span id="shape-name" class="shape-name">Octagon</span>
+          </div>
+
+          <div class="control" data-tooltip="Set the frame's rotation speed. Negative values spin in reverse.">
+            <div class="control-label-row">
+              <label class="control-label" for="spin-speed">Spin Speed</label>
+              <output id="spin-speed-value" for="spin-speed">0.65 rad/s</output>
+            </div>
+            <input id="spin-speed" type="range" min="-3" max="3" step="0.05" value="0.65" />
+          </div>
+        </div>
+      </section>
+
+      <section class="control-card">
+        <button class="section-toggle" type="button" aria-expanded="true" aria-controls="balls-content">
+          <span class="section-title"><span class="section-index">02</span> Balls</span>
+          <span class="chevron" aria-hidden="true"></span>
+        </button>
+        <div class="section-content" id="balls-content">
+          <div class="control" data-tooltip="Choose how many colored balls are simulated.">
+            <div class="control-label-row">
+              <label class="control-label" for="count">Count</label>
+              <output id="count-value" for="count">40</output>
+            </div>
+            <input id="count" type="range" min="1" max="200" step="1" value="40" />
+          </div>
+
+          <div class="control" data-tooltip="Add up to this many pixels of random radius to each ball.">
+            <div class="control-label-row">
+              <label class="control-label" for="size-variation">Size Variation</label>
+              <output id="size-variation-value" for="size-variation">+20 px</output>
+            </div>
+            <input id="size-variation" type="range" min="0" max="40" step="1" value="20" />
+          </div>
+
+          <div class="control" data-tooltip="Set how much speed balls retain when they hit the frame.">
+            <div class="control-label-row">
+              <label class="control-label" for="bounciness">Bounciness</label>
+              <output id="bounciness-value" for="bounciness">0.82</output>
+            </div>
+            <input id="bounciness" type="range" min="0" max="1.2" step="0.01" value="0.82" />
+          </div>
+
+          <label class="control switch-control" data-tooltip="When disabled, balls pass through one another but still collide with the frame." for="ball-collisions">
+            <span class="control-label">Ball Collisions</span>
+            <span class="switch">
+              <input id="ball-collisions" type="checkbox" checked />
+              <span class="switch-track" aria-hidden="true"></span>
+            </span>
+          </label>
+        </div>
+      </section>
+
+      <section class="control-card">
+        <button class="section-toggle" type="button" aria-expanded="true" aria-controls="physics-content">
+          <span class="section-title"><span class="section-index">03</span> Physics</span>
+          <span class="chevron" aria-hidden="true"></span>
+        </button>
+        <div class="section-content" id="physics-content">
+          <div class="control" data-tooltip="Aim gravity around the frame. The arrow shows its nearest cardinal direction.">
+            <div class="control-label-row">
+              <label class="control-label" for="gravity-angle">Gravity Angle</label>
+              <output id="gravity-angle-value" for="gravity-angle">↓ 180°</output>
+            </div>
+            <input id="gravity-angle" type="range" min="0" max="360" step="1" value="180" />
+          </div>
+
+          <div class="control" data-tooltip="Set gravitational acceleration. Zero creates a weightless scene.">
+            <div class="control-label-row">
+              <label class="control-label" for="gravity-strength">Gravity Strength</label>
+              <output id="gravity-strength-value" for="gravity-strength">550 px/s²</output>
+            </div>
+            <input id="gravity-strength" type="range" min="0" max="1500" step="10" value="550" />
+          </div>
+
+          <div class="control" data-tooltip="Scale the physics clock. Zero pauses motion; higher values speed it up.">
+            <div class="control-label-row">
+              <label class="control-label" for="time-scale">Time Scale</label>
+              <output id="time-scale-value" for="time-scale">1.00×</output>
+            </div>
+            <input id="time-scale" type="range" min="0" max="3" step="0.05" value="1" />
+          </div>
+        </div>
+      </section>
+
+      <section class="control-card">
+        <button class="section-toggle" type="button" aria-expanded="true" aria-controls="effects-content">
+          <span class="section-title"><span class="section-index">04</span> Effects</span>
+          <span class="chevron" aria-hidden="true"></span>
+        </button>
+        <div class="section-content" id="effects-content">
+          <label class="control switch-control" data-tooltip="Leave fading motion trails behind the balls." for="motion-trails">
+            <span class="control-label">Motion Trails</span>
+            <span class="switch">
+              <input id="motion-trails" type="checkbox" checked />
+              <span class="switch-track" aria-hidden="true"></span>
+            </span>
+          </label>
+          <div class="control" data-tooltip="Give every ball a random burst of 300–800 pixels per second.">
+            <button id="explode" class="action-button" type="button">✦ &nbsp; Explode</button>
+          </div>
+        </div>
+      </section>
+
+      <div class="panel-footnote"><span>5 × SUBSTEPS</span><span>EDGE COLLISIONS</span></div>
+    </aside>
+
+    <div id="tooltip" role="tooltip" aria-hidden="true"></div>
+    <script src="sim.js"></script>
+  </body>
+</html>
