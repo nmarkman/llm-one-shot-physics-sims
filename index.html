@@ -754,7 +754,8 @@ function render() {
     }
 
     const iframe = document.createElement('iframe');
-    iframe.src = model.path + '?embed=1';
+    // Embed mode hides the sim's own control panel; only the mobile layout has a toggle to bring it back.
+    iframe.src = model.path + (window.matchMedia('(max-width: 768px)').matches ? '?embed=1' : '');
     iframe.setAttribute('loading', 'lazy');
 
     pane.appendChild(iframe);
