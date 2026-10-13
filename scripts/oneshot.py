@@ -72,7 +72,8 @@ def extract(model, outdir, dry):
     html = max((b for k, b in blocks if k == "html"), key=len, default=None)
     js = max((b for k, b in blocks if k == "js"), key=len, default=None)
     # The CLI makes a tiny Haiku call for the session title; it is not part of the sim.
-    used = [k for k in (d.get("modelUsage") or {}) if not k.startswith("claude-haiku")]
+    # Keep the target itself, which matters when the model under test is a Haiku.
+    used = [k for k in (d.get("modelUsage") or {}) if k == model or not k.startswith("claude-haiku")]
     name, s = display_name(model), slug(model)
     print(f"\n== {model}: turns={d.get('num_turns')} is_error={d.get('is_error')} model_used={used}")
     if d.get("num_turns") != 1:
