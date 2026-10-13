@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Claude Haiku 5.5</title>
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --accent: rgb(100, 200, 255);
+      --accent-rgb: 100, 200, 255;
+      --text: #dcecf6;
+      --muted: rgba(200, 225, 240, 0.62);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      z-index: 0;
+    }
+
+    /* ---------- Glass panel ---------- */
+    #panel {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      z-index: 10;
+      width: 280px;
+      max-height: calc(100vh - 32px);
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 12px;
+      border-radius: 18px;
+      background: rgba(12, 18, 30, 0.42);
+      -webkit-backdrop-filter: blur(16px) saturate(140%);
+      backdrop-filter: blur(16px) saturate(140%);
+      border: 1px solid rgba(var(--accent-rgb), 0.22);
+      box-shadow:
+        0 12px 40px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      scrollbar-width: thin;
+      scrollbar-color: rgba(var(--accent-rgb), 0.35) transparent;
+    }
+    #panel::-webkit-scrollbar { width: 6px; }
+    #panel::-webkit-scrollbar-thumb {
+      background: rgba(var(--accent-rgb), 0.35);
+      border-radius: 3px;
+    }
+
+    /* ---------- Collapsible cards ---------- */
+    .card {
+      margin-bottom: 10px;
+      border-radius: 14px;
+      border: 1px solid rgba(var(--accent-rgb), 0.12);
+      background: rgba(255, 255, 255, 0.025);
+      transition: border-color 0.25s ease, background-color 0.25s ease;
+    }
+    .card:last-child { margin-bottom: 0; }
+    .card:hover {
+      border-color: rgba(var(--accent-rgb), 0.4);
+      background-color: rgba(var(--accent-rgb), 0.04);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      margin: 0;
+      padding: 11px 14px;
+      background: none;
+      border: 0;
+      border-radius: 14px;
+      color: var(--accent);
+      cursor: pointer;
+      font: inherit;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      text-align: left;
+    }
+    .card-header:focus-visible {
+      outline: 1px solid rgba(var(--accent-rgb), 0.6);
+      outline-offset: -2px;
+    }
+
+    .chevron {
+      width: 8px;
+      height: 8px;
+      flex: none;
+      border-right: 2px solid currentColor;
+      border-bottom: 2px solid currentColor;
+      transform: translateY(-2px) rotate(45deg);
+      transition: transform 0.25s ease;
+    }
+    .card.collapsed .chevron {
+      transform: translateX(-1px) rotate(-45deg);
+    }
+
+    .card-body {
+      display: grid;
+      grid-template-rows: 1fr;
+      transition: grid-template-rows 0.3s ease;
+    }
+    .card.collapsed .card-body { grid-template-rows: 0fr; }
+
+    .card-inner { min-height: 0; overflow: hidden; }
+
+    .card-content {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 2px 14px 14px;
+    }
+
+    /* ---------- Controls ---------- */
+    .control { position: relative; }
+
+    .control.inline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 2px;
+      font-size: 12.5px;
+    }
+    .row label {
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .val {
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .shape-name {
+      margin-top: 2px;
+      font-size: 10.5px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      text-shadow: 0 0 8px rgba(var(--accent-rgb), 0.6);
+    }
+
+    .control > label {
+      font-size: 12.5px;
+      color: var(--muted);
+      cursor: pointer;
+    }
+
+    /* ---------- Range sliders ---------- */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      display: block;
+      width: 100%;
+      height: 4px;
+      margin: 8px 0 2px;
+      border-radius: 999px;
+      outline: none;
+      cursor: pointer;
+      background: linear-gradient(to right,
+        rgba(var(--accent-rgb), 0.95) 0%,
+        rgba(var(--accent-rgb), 0.95) var(--p, 50%),
+        rgba(255, 255, 255, 0.12) var(--p, 50%),
+        rgba(255, 255, 255, 0.12) 100%);
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      margin-top: -5px;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      background: radial-gradient(circle at 35% 35%, #e8f9ff 0%, rgb(100, 200, 255) 55%, rgb(60, 150, 230) 100%);
+      box-shadow: 0 0 6px rgba(100, 200, 255, 0.9), 0 0 14px rgba(100, 200, 255, 0.45);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+      box-shadow: 0 0 8px rgba(100, 200, 255, 1), 0 0 20px rgba(100, 200, 255, 0.6);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border: none;
+      border-radius: 50%;
+      background: rgb(100, 200, 255);
+      box-shadow: 0 0 6px rgba(100, 200, 255, 0.9), 0 0 14px rgba(100, 200, 255, 0.45);
+      cursor: pointer;
+    }
+    input[type="range"]::-moz-range-track {
+      height: 4px;
+      background: transparent;
+    }
+    input[type="range"]:focus-visible::-webkit-slider-thumb {
+      box-shadow: 0 0 0 3px rgba(100, 200, 255, 0.35), 0 0 10px rgba(100, 200, 255, 0.9);
+    }
+
+    /* ---------- Toggle switch ---------- */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 40px;
+      height: 22px;
+      flex: none;
+      cursor: pointer;
+    }
+    .switch input {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      opacity: 0;
+      cursor: pointer;
+      z-index: 1;
+    }
+    .switch .track {
+      position: absolute;
+      inset: 0;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.10);
+      border: 1px solid rgba(var(--accent-rgb), 0.3);
+      transition: background 0.25s ease, box-shadow 0.25s ease;
+    }
+    .switch .knob {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #c4d3de;
+      transition: transform 0.25s cubic-bezier(0.4, 0.1, 0.2, 1), background 0.25s ease;
+    }
+    .switch input:checked + .track {
+      background: rgba(var(--accent-rgb), 0.3);
+      box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.45);
+    }
+    .switch input:checked + .track .knob {
+      transform: translateX(18px);
+      background: rgb(100, 200, 255);
+      box-shadow: 0 0 8px rgba(100, 200, 255, 0.9);
+    }
+    .switch input:focus-visible + .track {
+      outline: 1px solid rgba(var(--accent-rgb), 0.7);
+      outline-offset: 2px;
+    }
+
+    /* ---------- Action button ---------- */
+    .action-btn {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      border: 1px solid rgba(var(--accent-rgb), 0.6);
+      background: linear-gradient(135deg, rgba(100, 200, 255, 0.25), rgba(100, 200, 255, 0.05));
+      color: #e6f7ff;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      box-shadow: 0 0 14px rgba(100, 200, 255, 0.25), inset 0 0 12px rgba(100, 200, 255, 0.08);
+      transition: transform 0.12s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+    .action-btn:hover {
+      background: linear-gradient(135deg, rgba(100, 200, 255, 0.4), rgba(100, 200, 255, 0.12));
+      box-shadow: 0 0 22px rgba(100, 200, 255, 0.5), inset 0 0 16px rgba(100, 200, 255, 0.15);
+    }
+    .action-btn:active { transform: scale(0.97); }
+    .action-btn:focus-visible {
+      outline: 1px solid rgba(var(--accent-rgb), 0.8);
+      outline-offset: 2px;
+    }
+
+    /* ---------- Tooltip (lives outside the panel, so it is never clipped) ---------- */
+    #tooltip {
+      position: fixed;
+      left: 0;
+      top: 0;
+      z-index: 100;
+      max-width: 230px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      font-size: 12px;
+      line-height: 1.45;
+      color: #d8ecf8;
+      pointer-events: none;
+      background: rgba(10, 14, 24, 0.92);
+      border: 1px solid rgba(var(--accent-rgb), 0.35);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5), 0 0 12px rgba(var(--accent-rgb), 0.15);
+      opacity: 0;
+      transform: translateX(-4px);
+      transition: opacity 0.15s ease, transform 0.15s ease;
+    }
+    #tooltip.show {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  </style>
+</head>
+<body>
+
+
+<style>
+  
+  @media (max-width: 768px) {
+    #panel, #controls, #controlPanel, #control-panel, .controls, .sidebar {
+      width: calc(100vw - 32px) !important;
+      max-width: none !important;
+      left: 16px !important;
+      right: 16px !important;
+      max-height: 60vh !important;
+      font-size: 0.85rem !important;
+    }
+  }
+
+  .sim-panel-toggle {
+    display: none;
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    z-index: 9999;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid rgba(100,200,255,0.2);
+    background: rgba(10, 14, 24, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: rgba(200,220,240,0.8);
+    font-size: 1.2rem;
+    cursor: pointer;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+    align-items: center;
+    justify-content: center;
+  }
+  .sim-panel-toggle:active { transform: scale(0.92); }
+
+  @media (max-width: 768px) {
+    
+  .sim-panel-toggle { display: flex; }
+    #panel.panel-hidden { display: none !important; }
+  }
+
+  /* Embed mode: hide toggle + panel */
+  .embed-mode .sim-panel-toggle { display: none !important; }
+  .embed-mode #panel { display: none !important; }
+</style>
+<script>
+  (function() {
+    var isEmbed = new URLSearchParams(location.search).has('embed');
+    if (isEmbed) document.documentElement.classList.add('embed-mode');
+    
+    // Listen for parent show/hide messages
+    window.addEventListener('message', function(e) {
+      if (e.data === 'show-panel') {
+        document.documentElement.classList.remove('embed-mode');
+      } else if (e.data === 'hide-panel') {
+        document.documentElement.classList.add('embed-mode');
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+      var btn = document.createElement('button');
+      btn.className = 'sim-panel-toggle';
+      btn.textContent = isEmbed ? '⚙️' : '✕';
+      btn.title = 'Toggle controls';
+      document.body.appendChild(btn);
+      
+      var panel = document.querySelector('#panel');
+      if (!panel) return;
+      if (!isEmbed) {
+        // Standalone on mobile: panel visible initially
+      }
+      
+      btn.addEventListener('click', function() {
+        panel.classList.toggle('panel-hidden');
+        if (isEmbed) {
+          document.documentElement.classList.toggle('embed-mode');
+        }
+        btn.textContent = panel.classList.contains('panel-hidden') || 
+          document.documentElement.classList.contains('embed-mode') ? '⚙️' : '✕';
+      });
+    });
+  })();
+</script>
+  <canvas id="canvas"></canvas>
+
+  <aside id="panel" aria-label="Simulation controls">
+
+    <!-- ===== Shape ===== -->
+    <section class="card">
+      <button class="card-header" type="button" aria-expanded="true">
+        <span>Shape</span><span class="chevron" aria-hidden="true"></span>
+      </button>
+      <div class="card-body"><div class="card-inner"><div class="card-content">
+
+        <div class="control" data-tip="Number of sides of the rotating frame, from triangle (3) up to icosagon (20).">
+          <div class="row">
+            <label for="sides">Sides</label>
+            <span class="val" id="sidesOut"></span>
+          </div>
+          <input type="range" id="sides" min="3" max="20" step="1" value="8">
+          <div class="shape-name" id="shapeName">Octagon</div>
+        </div>
+
+        <div class="control" data-tip="How fast the frame rotates, in rad/s. Spinning walls drag and fling balls at the contact point. Negative values reverse the spin.">
+          <div class="row">
+            <label for="spin">Spin Speed</label>
+            <span class="val" id="spinOut"></span>
+          </div>
+          <input type="range" id="spin" min="-3" max="3" step="0.05" value="0.5">
+        </div>
+
+      </div></div></div>
+    </section>
+
+    <!-- ===== Balls ===== -->
+    <section class="card">
+      <button class="card-header" type="button" aria-expanded="true">
+        <span>Balls</span><span class="chevron" aria-hidden="true"></span>
+      </button>
+      <div class="card-body"><div class="card-inner"><div class="card-content">
+
+        <div class="control" data-tip="How many balls are in the frame. Changing this respawns all balls.">
+          <div class="row">
+            <label for="count">Count</label>
+            <span class="val" id="countOut"></span>
+          </div>
+          <input type="range" id="count" min="1" max="200" step="1" value="40">
+        </div>
+
+        <div class="control" data-tip="Maximum random radius added to a base radius of 6px. Changing this respawns all balls.">
+          <div class="row">
+            <label for="sizeVar">Size Variation</label>
+            <span class="val" id="sizeVarOut"></span>
+          </div>
+          <input type="range" id="sizeVar" min="0" max="40" step="1" value="14">
+        </div>
+
+        <div class="control" data-tip="Wall restitution. 0 absorbs all impact energy, 1 is perfectly elastic, above 1 adds energy on every hit.">
+          <div class="row">
+            <label for="bounce">Bounciness</label>
+            <span class="val" id="bounceOut"></span>
+          </div>
+          <input type="range" id="bounce" min="0" max="1.2" step="0.01" value="0.8">
+        </div>
+
+        <div class="control inline" data-tip="When on, balls collide and exchange momentum. When off, they pass straight through each other.">
+          <label for="collisions">Ball Collisions</label>
+          <label class="switch">
+            <input type="checkbox" id="collisions" checked>
+            <span class="track"><span class="knob"></span></span>
+          </label>
+        </div>
+
+      </div></div></div>
+    </section>
+
+    <!-- ===== Physics ===== -->
+    <section class="card">
+      <button class="card-header" type="button" aria-expanded="true">
+        <span>Physics</span><span class="chevron" aria-hidden="true"></span>
+      </button>
+      <div class="card-body"><div class="card-inner"><div class="card-content">
+
+        <div class="control" data-tip="Direction gravity pulls in, in degrees. 0° points right, 90° down, 180° left, 270° up.">
+          <div class="row">
+            <label for="gravAngle">Gravity Angle</label>
+            <span class="val" id="gravAngleOut"></span>
+          </div>
+          <input type="range" id="gravAngle" min="0" max="360" step="1" value="90">
+        </div>
+
+        <div class="control" data-tip="Gravitational acceleration in px/s². Set to 0 for zero-G.">
+          <div class="row">
+            <label for="gravity">Gravity Strength</label>
+            <span class="val" id="gravityOut"></span>
+          </div>
+          <input type="range" id="gravity" min="0" max="1500" step="5" value="600">
+        </div>
+
+        <div class="control" data-tip="Multiplies the physics timestep. 0 freezes the simulation, 3 runs it three times faster.">
+          <div class="row">
+            <label for="timeScale">Time Scale</label>
+            <span class="val" id="timeScaleOut"></span>
+          </div>
+          <input type="range" id="timeScale" min="0" max="3" step="0.01" value="1">
+        </div>
+
+      </div></div></div>
+    </section>
+
+    <!-- ===== Effects ===== -->
+    <section class="card">
+      <button class="card-header" type="button" aria-expanded="true">
+        <span>Effects</span><span class="chevron" aria-hidden="true"></span>
+      </button>
+      <div class="card-body"><div class="card-inner"><div class="card-content">
+
+        <div class="control inline" data-tip="Leaves fading trails by overlaying a translucent black rectangle each frame instead of clearing the canvas.">
+          <label for="trails">Motion Trails</label>
+          <label class="switch">
+            <input type="checkbox" id="trails">
+            <span class="track"><span class="knob"></span></span>
+          </label>
+        </div>
+
+        <div class="control" data-tip="Gives every ball a random 300–800 px/s velocity impulse in a random direction.">
+          <button id="explodeBtn" class="action-btn" type="button">Explode</button>
+        </div>
+
+      </div></div></div>
+    </section>
+
+  </aside>
+
+  <div id="tooltip" role="tooltip"></div>
+
+  <script src="sim.js"></script>
+</body>
+</html>

@@ -17,6 +17,9 @@ Some entries are foundation models prompted directly. Others are AI-powered codi
 | Name | Type | Provider | Foundation Model |
 |------|------|----------|-----------------|
 | Claude Fable 5.1 | Model | Anthropic | — |
+| Claude Opus 5.5 | Model | Anthropic | — |
+| Claude Sonnet 5.5 | Model | Anthropic | — |
+| Claude Haiku 5.5 | Model | Anthropic | — |
 | Claude Fable 5 | Model | Anthropic | — |
 | Claude Opus 5 | Model | Anthropic | — |
 | Claude Sonnet 5 | Model | Anthropic | — |
@@ -30,6 +33,7 @@ Some entries are foundation models prompted directly. Others are AI-powered codi
 | Claude Opus 4.1 | Model | Anthropic | — |
 | Claude Opus 4 | Model | Anthropic | — |
 | Claude Sonnet 4 | Model | Anthropic | — |
+| Codex (GPT-6-Astra) | Tool | OpenAI | GPT-6-Astra |
 | Codex (GPT-5.6-Sol) | Tool | OpenAI | GPT-5.6-Sol |
 | Codex (GPT-5.6-Terra) | Tool | OpenAI | GPT-5.6-Terra |
 | Codex (GPT-5.6-Luna) | Tool | OpenAI | GPT-5.6-Luna |
@@ -46,6 +50,7 @@ Some entries are foundation models prompted directly. Others are AI-powered codi
 - **April 2026** (Opus 4.5, Sonnet 4.5, Opus 4.1, Opus 4, Sonnet 4, Claude 3 Haiku): `generate_sim.py` through the Anthropic API, with one formatting instruction appended to the prompt so the reply contained only the two files. Claude 3 Haiku's reply never yielded a usable `sim.js`, so that entry was removed on September 2, 2026 rather than regenerated.
 - **September 1, 2026** (Fable 5.1, Fable 5, Opus 5, Opus 4.8, Opus 4.7, Sonnet 5): the Claude Code CLI in print mode against each exact model ID on a claude.ai subscription, with every tool, MCP server, plugin, hook, and project instruction file disabled (`--safe-mode --tools "" --strict-mcp-config`), a neutral system prompt ("You are a helpful assistant."), effort pinned to `xhigh`, and a single turn. The two code blocks in each response were saved verbatim. Reproduce with `python3 scripts/oneshot.py <model-id>`.
 - **September 2, 2026** (the seven Codex entries): Codex CLI 0.152.0 in non-interactive `codex exec` mode on a ChatGPT login, one model per run in a fresh git-initialized empty directory, with a temporary `CODEX_HOME` (empty config, no MCP servers, no user plugins) and a temporary `HOME`, because Codex also discovers skills from `~/.agents/skills` and `~/.codex/skills`; only the five system skills the CLI installs itself were present. Reasoning effort `xhigh`, workspace-write sandbox with network restricted, single turn. Unlike the model entries these are agentic runs: Codex wrote the files itself and could re-read, re-edit, and syntax-check them before finishing. GPT-5.4 and GPT-5.4-Mini carried an August 31, 2026 retirement date in the catalog but still served. Reproduce with `python3 scripts/oneshot_codex.py <model-slug>`; `codex debug models` lists the catalog.
+- **October 12, 2026** (Opus 5.5, Sonnet 5.5, Haiku 5.5, Codex GPT-6-Astra): the same two clean-room setups as the September batches, on Claude Code 2.1.296 and Codex CLI 0.154.0. Effort stays pinned to `xhigh` for all four, which matters most for Opus 5.5 and Haiku 5.5 because both default to `medium`. GPT-6-Astra also offers `max` and `ultra` (the latter delegates to sub-agents), neither used here. Each Claude reply was a single turn; the Codex run was a single turn that wrote both files once and ran ten self-check commands. By this date GPT-5.4, GPT-5.4-Mini, and GPT-5.3-Codex-Spark had left the Codex catalog; their September entries stay as generated.
 
 Edits applied to every entry after generation: the page `<title>` is normalized to the entry name, and a small mobile snippet (a controls toggle plus embed mode for the comparison page) is injected after `<body>` in each `index.html`. Three entries also carry a functional fix, each marked with a comment in `sim.js` and otherwise untouched: Claude Haiku 4.5 (an invalid hex-alpha suffix on `hsl()` colors that threw on every frame, and a sign error in `getSignedDistance` that sent every ball to infinity within a second), Claude Opus 4.1 (the same hex-alpha suffix on `hsl()` colors), and Codex GPT-5.4-Mini (an undeclared `body` shorthand property in the ball constructor that threw on load).
 
