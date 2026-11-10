@@ -68,7 +68,25 @@ def run(model, prompt, effort, home, fake_home, workroot, logdir):
         subprocess.run(cmd, stdin=subprocess.DEVNULL, stdout=out, stderr=err, env=env)
 
 
-def extract(model, workroot, dry):
+def run_error(model, logdir):
+    """Return the last error message Codex reported for this run, if any."""
+    events = logdir / f"{model}.events.jsonl" if logdir else None
+    if not (events and events.exists()):
+        return None
+    msg = None
+    for line in events.read_text().splitlines():
+        try:
+            e = json.loads(line)
+        except ValueError:
+            continue
+        if e.get("type") == "error":
+            msg = e.get("message")
+        elif e.get("type") == "turn.failed":
+            msg = (e.get("error") or {}).get("message") or msg
+    return msg
+
+
+def extract(model, workroot, dry, logdir=None):
     d = workroot / model
     name = f"Codex ({display_name(model)})"
     s = slug(model)
@@ -77,6 +95,11 @@ def extract(model, workroot, dry):
     print(f"\n== {model} -> sims/{s}/  ({name})")
     if not (html_p.exists() and js_p.exists()):
         print(f"   FAILED: workspace {d} is missing index.html or sim.js; files present: {extra}")
+        err = run_error(model, logdir)
+        if err:
+            print(f"   codex reported: {err}")
+            if "refresh token" in err or "sign in again" in err:
+                print("   `codex login status` can still say logged in here; run `codex logout && codex login`")
         return
     html = re.sub(r"<title>[^<]*</title>", f"<title>{name}</title>", html_p.read_text(), count=1)
     js = js_p.read_text()
@@ -100,8 +123,10 @@ def main():
     ap.add_argument("--reuse", help="directory holding existing <model>/ workspaces; skips generation")
     ap.add_argument("--dry", action="store_true", help="report but do not write sims/")
     a = ap.parse_args()
+    logdir = None
     if a.reuse:
         workroot = Path(a.reuse)
+        logdir = workroot.parent / "logs" if (workroot.parent / "logs").is_dir() else None
     else:
         tmp = Path(tempfile.mkdtemp(prefix="oneshot-codex-"))
         (home, fake_home), workroot, logdir = make_home(tmp), tmp / "runs", tmp / "logs"
@@ -114,7 +139,7 @@ def main():
         for t in threads:
             t.join()
     for m in a.models:
-        extract(m, workroot, a.dry)
+        extract(m, workroot, a.dry, logdir)
 
 
 if __name__ == "__main__":
