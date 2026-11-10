@@ -11,7 +11,9 @@ user plugins) and a temporary HOME, because Codex also discovers skills from
 system skills the CLI installs itself remain. Reasoning effort pinned, workspace-write
 sandbox, network restricted. Codex writes the
 two files itself; they are copied verbatim into sims/codex-<slug>/ with only the page
-<title> normalized. `--reuse DIR` skips generation and extracts from DIR/<model>/.
+<title> normalized. When a run writes no files, the script prints the error Codex
+reported (from the run's event log, else its stderr). `--reuse DIR` skips generation and
+extracts from an earlier run; DIR is the printed root or its runs/ directory.
 List available models with `codex debug models`.
 """
 import argparse, json, os, re, subprocess, sys, tempfile, threading
@@ -68,21 +70,28 @@ def run(model, prompt, effort, home, fake_home, workroot, logdir):
         subprocess.run(cmd, stdin=subprocess.DEVNULL, stdout=out, stderr=err, env=env)
 
 
-def run_error(model, logdir):
-    """Return the last error message Codex reported for this run, if any."""
-    events = logdir / f"{model}.events.jsonl" if logdir else None
-    if not (events and events.exists()):
+def last_codex_error(model, logdir):
+    """Return the last error Codex reported for this run, or the tail of its stderr."""
+    if not logdir:
         return None
+    events, err = logdir / f"{model}.events.jsonl", logdir / f"{model}.err"
     msg = None
-    for line in events.read_text().splitlines():
-        try:
-            e = json.loads(line)
-        except ValueError:
-            continue
-        if e.get("type") == "error":
-            msg = e.get("message")
-        elif e.get("type") == "turn.failed":
-            msg = (e.get("error") or {}).get("message") or msg
+    if events.exists():
+        for line in events.read_text().splitlines():
+            try:
+                e = json.loads(line)
+            except ValueError:
+                continue
+            if not isinstance(e, dict):
+                continue
+            if e.get("type") == "error":
+                msg = e.get("message") or msg
+            elif e.get("type") == "turn.failed":
+                # A turn.failed without its own message keeps the preceding error event's.
+                fail = e.get("error")
+                msg = (fail.get("message") if isinstance(fail, dict) else fail) or msg
+    if not msg and err.exists():
+        msg = err.read_text().strip()[-300:] or None
     return msg
 
 
@@ -95,11 +104,13 @@ def extract(model, workroot, dry, logdir=None):
     print(f"\n== {model} -> sims/{s}/  ({name})")
     if not (html_p.exists() and js_p.exists()):
         print(f"   FAILED: workspace {d} is missing index.html or sim.js; files present: {extra}")
-        err = run_error(model, logdir)
+        err = last_codex_error(model, logdir)
         if err:
             print(f"   codex reported: {err}")
             if "refresh token" in err or "sign in again" in err:
                 print("   `codex login status` can still say logged in here; run `codex logout && codex login`")
+        if logdir:
+            print(f"   logs: {logdir}")
         return
     html = re.sub(r"<title>[^<]*</title>", f"<title>{name}</title>", html_p.read_text(), count=1)
     js = js_p.read_text()
@@ -112,7 +123,10 @@ def extract(model, workroot, dry, logdir=None):
     (dest / "sim.js").write_text(js.rstrip() + "\n")
     fd = display_name(model)
     print(f"   wrote sims/{s}/")
-    print(f"   MODELS row:  {{ id: '{s}', name: '{name}', provider: 'OpenAI', type: 'tool', foundation: '{fd}', path: 'sims/{s}/' }},")
+    # GPT-6.1-Sol -> GPT-6.1 Sol, GPT-5.3-Codex-Spark -> GPT-5.3 Codex Spark (matches index.html labels)
+    m = re.match(r"(GPT-[\d.]+)-?(.*)", fd)
+    short = " ".join(f"{m.group(1)} {m.group(2).replace('-', ' ')}".split()) if m else fd
+    print(f"   MODELS row:  {{ id: '{s}', name: '{name}', short: '{short}', group: 'Codex', provider: 'OpenAI', type: 'tool', foundation: '{fd}', path: 'sims/{s}/' }},")
     print(f"   README row:  | {name} | Tool | OpenAI | {fd} |")
 
 
@@ -120,13 +134,17 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("models", nargs="+", help="Codex model slugs, e.g. gpt-5.5")
     ap.add_argument("--effort", default="xhigh")
-    ap.add_argument("--reuse", help="directory holding existing <model>/ workspaces; skips generation")
+    ap.add_argument("--reuse", help="a previous run's root (the printed 'workspaces and logs' path) or its runs/ "
+                    "directory; skips generation and reads errors from the sibling logs/")
     ap.add_argument("--dry", action="store_true", help="report but do not write sims/")
     a = ap.parse_args()
     logdir = None
     if a.reuse:
-        workroot = Path(a.reuse)
-        logdir = workroot.parent / "logs" if (workroot.parent / "logs").is_dir() else None
+        root = Path(a.reuse)
+        if (root / "runs").is_dir():
+            root = root / "runs"
+        workroot = root
+        logdir = root.parent / "logs" if (root.parent / "logs").is_dir() else None
     else:
         tmp = Path(tempfile.mkdtemp(prefix="oneshot-codex-"))
         (home, fake_home), workroot, logdir = make_home(tmp), tmp / "runs", tmp / "logs"

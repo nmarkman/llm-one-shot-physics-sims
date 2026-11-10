@@ -90,7 +90,8 @@ def extract(model, outdir, dry):
     (dest / "index.html").write_text(html.rstrip() + "\n")
     (dest / "sim.js").write_text(js.rstrip() + "\n")
     print(f"   wrote sims/{s}/")
-    print(f"   MODELS row:  {{ id: '{s}', name: '{name}', provider: 'Anthropic', type: 'model', foundation: null, path: 'sims/{s}/' }},")
+    short = name.replace("Claude ", "", 1)
+    print(f"   MODELS row:  {{ id: '{s}', name: '{name}', short: '{short}', group: 'Claude', provider: 'Anthropic', type: 'model', foundation: null, path: 'sims/{s}/' }},")
     print(f"   README row:  | {name} | Model | Anthropic | {chr(0x2014)} |")
 
 
