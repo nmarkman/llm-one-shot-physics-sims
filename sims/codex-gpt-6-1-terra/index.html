@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0a0a0f">
+  <title>Codex (GPT-6.1-Terra)</title>
+  <style>
+    :root{color-scheme:dark;--cyan:#64c8ff;--muted:#778a9c;--line:rgba(137,190,217,.13)}
+    *{box-sizing:border-box}
+    html,body{width:100%;height:100%;margin:0;overflow:hidden}
+    body{background:#0a0a0f;color:#e7f4fb;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    canvas{display:block;width:100%;height:100%;position:fixed;inset:0}
+    .panel{position:fixed;z-index:2;top:20px;left:20px;bottom:20px;width:320px;padding:23px 18px 18px;overflow-y:auto;overscroll-behavior:contain;border:1px solid rgba(132,204,237,.16);border-radius:18px;background:rgba(13,20,29,.82);box-shadow:0 20px 70px rgba(0,0,0,.4),inset 0 1px rgba(255,255,255,.035);backdrop-filter:blur(22px);scrollbar-width:thin;scrollbar-color:#30495a transparent}
+    .brand{display:flex;align-items:center;gap:11px;margin:0 3px 26px}
+    .brand-icon{display:grid;place-items:center;width:36px;height:36px;border:1px solid rgba(100,200,255,.35);border-radius:11px;background:rgba(100,200,255,.08);color:var(--cyan)}
+    .brand-icon svg{width:21px;height:21px}
+    .brand h1{font-size:15px;letter-spacing:.045em;margin:0;font-weight:700}
+    .brand p{font-size:10px;letter-spacing:.16em;color:#71899a;margin:4px 0 0;text-transform:uppercase;font-weight:600}
+    .panel-title{display:flex;align-items:center;justify-content:space-between;margin:0 4px 12px;color:#71899a;font-size:10px;letter-spacing:.15em;font-weight:700;text-transform:uppercase}
+    .panel-title span:last-child{font-size:9px;color:#4e6778}
+    .section{margin-bottom:9px;border:1px solid var(--line);border-radius:11px;background:rgba(255,255,255,.025);transition:border-color .2s,background .2s}
+    .section:hover{border-color:rgba(100,200,255,.32);background:rgba(255,255,255,.035)}
+    .section-header{width:100%;padding:14px 13px;border:0;background:none;color:#dcebf4;display:flex;align-items:center;gap:10px;text-align:left;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer}
+    .section-header .icon{display:grid;place-items:center;width:23px;height:23px;color:var(--cyan);border-radius:6px;background:rgba(100,200,255,.09)}
+    .section-header svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+    .section-header .title{flex:1;font-size:12px;font-weight:650;letter-spacing:.02em}
+    .chevron{color:#708899;transition:transform .2s}.section-header[aria-expanded="false"] .chevron{transform:rotate(-90deg)}
+    .section-content{padding:1px 14px 15px}.section-content[hidden]{display:none}
+    .control{margin-top:16px}.control:first-child{margin-top:4px}
+    .control-line{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:9px}
+    label,.control-label{color:#aabcc9;font-size:11px;font-weight:550;letter-spacing:.01em}
+    output{color:#d7f3ff;font-size:11px;font-weight:650;font-variant-numeric:tabular-nums}
+    .hint{color:#637b8b;font-size:10px;margin-top:5px}
+    input[type=range]{display:block;width:100%;height:4px;margin:0;appearance:none;-webkit-appearance:none;border:0;border-radius:4px;outline:none;background:linear-gradient(to right,var(--cyan) 0%,var(--cyan) var(--progress,50%),#273c49 var(--progress,50%),#273c49 100%);cursor:pointer}
+    input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border:2px solid #bceaff;border-radius:50%;background:#64c8ff;box-shadow:0 0 10px rgba(100,200,255,.65)}
+    input[type=range]::-moz-range-thumb{width:9px;height:9px;border:2px solid #bceaff;border-radius:50%;background:#64c8ff;box-shadow:0 0 10px rgba(100,200,255,.65)}
+    input:focus-visible,button:focus-visible{outline:2px solid #a2e2ff;outline-offset:4px}
+    .range-ends{display:flex;justify-content:space-between;margin-top:7px;color:#526b7c;font-size:9px;font-variant-numeric:tabular-nums}
+    .switch-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .switch{position:relative;width:32px;height:18px;flex:none}
+    .switch input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer}
+    .switch-track{display:block;width:100%;height:100%;border-radius:20px;background:#344452;transition:background .2s;pointer-events:none}
+    .switch-track:after{content:"";position:absolute;top:3px;left:3px;width:12px;height:12px;border-radius:50%;background:#a5b6c0;transition:transform .2s,background .2s}
+    .switch input:checked+.switch-track{background:#358db9}.switch input:checked+.switch-track:after{transform:translateX(14px);background:#e4f8ff;box-shadow:0 0 8px rgba(100,200,255,.7)}
+    .switch input:focus-visible+.switch-track{outline:2px solid #a2e2ff;outline-offset:3px}
+    .explode{width:100%;margin-top:16px;padding:10px;border:1px solid rgba(100,200,255,.3);border-radius:7px;background:rgba(100,200,255,.08);color:#9cddff;font-family:inherit;font-weight:600;font-size:11px;letter-spacing:.04em;cursor:pointer;transition:background .2s,border-color .2s}
+    .explode:hover{background:rgba(100,200,255,.18);border-color:rgba(100,200,255,.65)}
+    .panel-footer{margin:19px 4px 0;display:flex;align-items:center;gap:7px;color:#567080;font-size:9px;letter-spacing:.1em;text-transform:uppercase}
+    .live-dot{width:6px;height:6px;border-radius:50%;background:#71e8c1;box-shadow:0 0 8px #71e8c1}
+    .scene-label{position:fixed;right:35px;top:32px;display:flex;align-items:center;gap:9px;color:#71899a;font-size:10px;letter-spacing:.16em;text-transform:uppercase;pointer-events:none}
+    .scene-label .live-dot{width:5px;height:5px}
+    .scene-caption{position:fixed;bottom:32px;left:50%;transform:translateX(-50%);text-align:center;pointer-events:none;white-space:nowrap}
+    .scene-caption strong{display:block;color:#718c9e;font-size:10px;font-weight:600;letter-spacing:.22em;text-transform:uppercase}
+    .scene-caption span{display:block;margin-top:6px;color:#425967;font-size:10px;letter-spacing:.03em}
+    .tooltip{position:fixed;z-index:10;max-width:210px;padding:9px 11px;border:1px solid rgba(100,200,255,.27);border-radius:7px;background:#172430;color:#c2d7e4;font-size:11px;line-height:1.45;box-shadow:0 8px 25px rgba(0,0,0,.35);pointer-events:none;opacity:0;transition:opacity .12s}
+    .tooltip.visible{opacity:1}
+    @media(max-width:650px){.panel{top:12px;left:12px;bottom:auto;width:260px;max-height:calc(100vh - 24px);padding:16px 13px}.brand{margin-bottom:17px}.scene-label{right:16px;top:18px;font-size:8px}.scene-caption{bottom:16px;left:auto;right:16px;transform:none;text-align:right}.scene-caption strong{font-size:9px}.scene-caption span{display:none}}
+  </style>
+</head>
+<body>
+
+
+<style>
+  
+  @media (max-width: 768px) {
+    #panel, #controls, #controlPanel, #control-panel, .controls, .sidebar {
+      width: calc(100vw - 32px) !important;
+      max-width: none !important;
+      left: 16px !important;
+      right: 16px !important;
+      max-height: 60vh !important;
+      font-size: 0.85rem !important;
+    }
+  }
+
+  .sim-panel-toggle {
+    display: none;
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    z-index: 9999;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid rgba(100,200,255,0.2);
+    background: rgba(10, 14, 24, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: rgba(200,220,240,0.8);
+    font-size: 1.2rem;
+    cursor: pointer;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+    align-items: center;
+    justify-content: center;
+  }
+  .sim-panel-toggle:active { transform: scale(0.92); }
+
+  @media (max-width: 768px) {
+    
+  .sim-panel-toggle { display: flex; }
+    .panel.panel-hidden { display: none !important; }
+  }
+
+  /* Embed mode: hide toggle + panel */
+  .embed-mode .sim-panel-toggle { display: none !important; }
+  .embed-mode .panel { display: none !important; }
+</style>
+<script>
+  (function() {
+    var isEmbed = new URLSearchParams(location.search).has('embed');
+    if (isEmbed) document.documentElement.classList.add('embed-mode');
+    
+    // Listen for parent show/hide messages
+    window.addEventListener('message', function(e) {
+      if (e.data === 'show-panel') {
+        document.documentElement.classList.remove('embed-mode');
+      } else if (e.data === 'hide-panel') {
+        document.documentElement.classList.add('embed-mode');
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+      var btn = document.createElement('button');
+      btn.className = 'sim-panel-toggle';
+      btn.textContent = isEmbed ? '⚙️' : '✕';
+      btn.title = 'Toggle controls';
+      document.body.appendChild(btn);
+      
+      var panel = document.querySelector('.panel');
+      if (!panel) return;
+      if (!isEmbed) {
+        // Standalone on mobile: panel visible initially
+      }
+      
+      btn.addEventListener('click', function() {
+        panel.classList.toggle('panel-hidden');
+        if (isEmbed) {
+          document.documentElement.classList.toggle('embed-mode');
+        }
+        btn.textContent = panel.classList.contains('panel-hidden') || 
+          document.documentElement.classList.contains('embed-mode') ? '⚙️' : '✕';
+      });
+    });
+  })();
+</script>
+  <canvas id="canvas" aria-label="A spinning polygon containing bouncing colorful balls"></canvas>
+  <aside class="panel" aria-label="Simulation controls">
+    <div class="brand"><div class="brand-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8.2 2.8h7.6l5.4 5.4v7.6l-5.4 5.4H8.2l-5.4-5.4V8.2z"/><circle cx="12" cy="12" r="3"/><circle cx="18" cy="7" r="1" fill="currentColor" stroke="none"/></svg></div><div><h1>ORBIT LAB</h1><p>Interactive physics playground</p></div></div>
+    <div class="panel-title"><span>Control panel</span><span>01 / 04</span></div>
+    <section class="section">
+      <button class="section-header" aria-expanded="true" aria-controls="shape-content"><span class="icon"><svg viewBox="0 0 24 24"><path d="M8 3h8l5 5v8l-5 5H8l-5-5V8z"/></svg></span><span class="title">Shape</span><svg class="chevron" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg></button>
+      <div class="section-content" id="shape-content">
+        <div class="control" data-tooltip="Change the number of sides on the spinning frame."><div class="control-line"><label for="sides">Sides</label><output id="sides-value">8</output></div><input id="sides" type="range" min="3" max="20" value="8"><div class="hint" id="shape-name">Octagon</div></div>
+        <div class="control" data-tooltip="Adjust rotation speed. Negative values spin in reverse."><div class="control-line"><label for="spin">Spin Speed</label><output id="spin-value">0.5</output></div><input id="spin" type="range" min="-3" max="3" step="0.1" value="0.5"><div class="range-ends"><span>−3</span><span>0</span><span>3</span></div></div>
+      </div>
+    </section>
+    <section class="section">
+      <button class="section-header" aria-expanded="true" aria-controls="balls-content"><span class="icon"><svg viewBox="0 0 24 24"><circle cx="9" cy="10" r="5"/><circle cx="16.5" cy="15.5" r="4.5"/></svg></span><span class="title">Balls</span><svg class="chevron" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg></button>
+      <div class="section-content" id="balls-content">
+        <div class="control" data-tooltip="Set how many balls are in the frame."><div class="control-line"><label for="count">Count</label><output id="count-value">40</output></div><input id="count" type="range" min="1" max="200" value="40"></div>
+        <div class="control" data-tooltip="Set the maximum random radius added to each ball’s base size."><div class="control-line"><label for="size">Size Variation</label><output id="size-value">12</output></div><input id="size" type="range" min="0" max="40" value="12"></div>
+        <div class="control" data-tooltip="Control how much energy balls retain when they hit the frame."><div class="control-line"><label for="bounce">Bounciness</label><output id="bounce-value">0.85</output></div><input id="bounce" type="range" min="0" max="1.2" step="0.05" value="0.85"></div>
+        <div class="control switch-row" data-tooltip="Turn ball-to-ball collisions on or off."><label for="collisions">Ball Collisions</label><label class="switch"><input id="collisions" type="checkbox" checked aria-label="Ball Collisions"><span class="switch-track"></span></label></div>
+      </div>
+    </section>
+    <section class="section">
+      <button class="section-header" aria-expanded="true" aria-controls="physics-content"><span class="icon"><svg viewBox="0 0 24 24"><path d="M12 3v16m-5-5 5 5 5-5M5 21h14"/></svg></span><span class="title">Physics</span><svg class="chevron" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg></button>
+      <div class="section-content" id="physics-content">
+        <div class="control" data-tooltip="Choose the direction gravity pulls the balls."><div class="control-line"><label for="gravity-angle">Gravity Angle</label><output id="gravity-angle-value">↓ 0°</output></div><input id="gravity-angle" type="range" min="0" max="360" value="0"></div>
+        <div class="control" data-tooltip="Adjust the strength of gravity. Set to zero for zero-G."><div class="control-line"><label for="gravity">Gravity Strength</label><output id="gravity-value">500</output></div><input id="gravity" type="range" min="0" max="1500" step="10" value="500"></div>
+        <div class="control" data-tooltip="Speed up, slow down, or pause the simulation."><div class="control-line"><label for="time">Time Scale</label><output id="time-value">1.0×</output></div><input id="time" type="range" min="0" max="3" step="0.1" value="1"></div>
+      </div>
+    </section>
+    <section class="section">
+      <button class="section-header" aria-expanded="true" aria-controls="effects-content"><span class="icon"><svg viewBox="0 0 24 24"><path d="m12 3 1.6 5.4L19 10l-5.4 1.6L12 17l-1.6-5.4L5 10l5.4-1.6zM19 16v5m-2.5-2.5h5"/></svg></span><span class="title">Effects</span><svg class="chevron" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg></button>
+      <div class="section-content" id="effects-content">
+        <div class="control switch-row" data-tooltip="Leave fading trails behind moving balls."><label for="trails">Motion Trails</label><label class="switch"><input id="trails" type="checkbox" aria-label="Motion Trails"><span class="switch-track"></span></label></div>
+        <div class="control" data-tooltip="Give every ball a random burst of velocity."><button class="explode" id="explode">✳ &nbsp; EXPLODE</button></div>
+      </div>
+    </section>
+    <div class="panel-footer"><span class="live-dot"></span> Simulation running</div>
+  </aside>
+  <div class="scene-label"><span class="live-dot"></span> Physics in motion</div>
+  <div class="scene-caption"><strong>Play with momentum</strong><span>A little world in constant motion</span></div>
+  <div class="tooltip" id="tooltip" role="tooltip"></div>
+  <script src="sim.js"></script>
+</body>
+</html>

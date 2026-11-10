@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a0a0f">
+  <title>Codex (GPT-6-Luna)</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0a0a0f;
+      --ink: #e8f4fa;
+      --muted: #80909d;
+      --cyan: #64c8ff;
+      --cyan-soft: rgba(100, 200, 255, .16);
+      --line: rgba(100, 200, 255, .17);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-synthesis: none;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      letter-spacing: .01em;
+    }
+
+    #scene {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .panel {
+      position: fixed;
+      z-index: 2;
+      top: 16px;
+      left: 16px;
+      width: 312px;
+      max-height: calc(100vh - 32px);
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      padding: 17px 14px 14px;
+      border: 1px solid rgba(100, 200, 255, .2);
+      border-radius: 18px;
+      background: linear-gradient(145deg, rgba(20, 28, 38, .88), rgba(11, 15, 23, .84));
+      box-shadow: 0 22px 70px rgba(0, 0, 0, .45), inset 0 1px rgba(255, 255, 255, .035);
+      backdrop-filter: blur(22px) saturate(130%);
+      -webkit-backdrop-filter: blur(22px) saturate(130%);
+      scrollbar-width: thin;
+      scrollbar-color: rgba(100, 200, 255, .3) transparent;
+    }
+
+    .panel::-webkit-scrollbar { width: 5px; }
+    .panel::-webkit-scrollbar-thumb { border-radius: 8px; background: rgba(100, 200, 255, .28); }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 4px 14px;
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 30px;
+      height: 30px;
+      place-items: center;
+      border: 1px solid rgba(100, 200, 255, .4);
+      border-radius: 10px;
+      color: var(--cyan);
+      background: rgba(100, 200, 255, .08);
+      font-size: 17px;
+      box-shadow: 0 0 18px rgba(100, 200, 255, .1);
+    }
+
+    .brand-title { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+    .brand-subtitle { margin: 3px 0 0; color: var(--muted); font-size: 10px; letter-spacing: .08em; }
+
+    .section-card {
+      margin-top: 8px;
+      overflow: hidden;
+      border: 1px solid rgba(130, 174, 200, .13);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, .018);
+      transition: border-color .2s ease, background .2s ease, box-shadow .2s ease;
+    }
+
+    .section-card:hover { border-color: rgba(100, 200, 255, .32); background: rgba(100, 200, 255, .025); }
+
+    .section-heading {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 11px 12px;
+      border: 0;
+      color: #c9d8e1;
+      background: transparent;
+      cursor: pointer;
+      text-align: left;
+      font: inherit;
+      font-size: 10px;
+      font-weight: 750;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+    }
+
+    .section-heading:hover { color: var(--cyan); }
+    .chevron { color: #718b9b; font-size: 15px; line-height: 1; transform: rotate(0deg); transition: transform .2s ease, color .2s ease; }
+    .section-heading[aria-expanded="true"] .chevron { color: var(--cyan); transform: rotate(90deg); }
+
+    .section-content { display: grid; gap: 14px; padding: 0 12px 13px; }
+    .section-content[hidden] { display: none; }
+
+    .control { display: grid; gap: 7px; }
+    .control-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .control label, .control-label { color: #aabac5; font-size: 11px; font-weight: 550; }
+    .readout { color: var(--cyan); font-size: 11px; font-variant-numeric: tabular-nums; }
+    .shape-name { color: #758895; font-size: 10px; }
+
+    input[type="range"] {
+      width: 100%;
+      height: 14px;
+      margin: 0;
+      appearance: none;
+      -webkit-appearance: none;
+      background: transparent;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-runnable-track { height: 3px; border-radius: 5px; background: linear-gradient(90deg, rgba(100, 200, 255, .68), rgba(100, 200, 255, .16)); }
+    input[type="range"]::-moz-range-track { height: 3px; border-radius: 5px; background: linear-gradient(90deg, rgba(100, 200, 255, .68), rgba(100, 200, 255, .16)); }
+    input[type="range"]::-webkit-slider-thumb {
+      width: 12px; height: 12px; margin-top: -4.5px; appearance: none; -webkit-appearance: none;
+      border: 2px solid #dff5ff; border-radius: 50%; background: var(--cyan);
+      box-shadow: 0 0 0 3px rgba(100, 200, 255, .13), 0 0 13px rgba(100, 200, 255, .65);
+    }
+    input[type="range"]::-moz-range-thumb { width: 9px; height: 9px; border: 2px solid #dff5ff; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 0 3px rgba(100, 200, 255, .13), 0 0 13px rgba(100, 200, 255, .65); }
+    input[type="range"]:focus-visible { outline: none; }
+    input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 5px rgba(100, 200, 255, .2), 0 0 15px rgba(100, 200, 255, .8); }
+
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; min-height: 23px; }
+    .switch { position: relative; display: inline-flex; width: 36px; height: 20px; flex: 0 0 auto; }
+    .switch input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+    .switch-track { position: absolute; inset: 0; border: 1px solid rgba(150, 172, 190, .26); border-radius: 20px; background: rgba(255, 255, 255, .08); transition: .2s ease; cursor: pointer; }
+    .switch-track::before { position: absolute; top: 3px; left: 3px; width: 12px; height: 12px; border-radius: 50%; background: #71808c; content: ""; transition: .2s ease; }
+    .switch input:checked + .switch-track { border-color: rgba(100, 200, 255, .65); background: rgba(100, 200, 255, .22); box-shadow: 0 0 12px rgba(100, 200, 255, .1); }
+    .switch input:checked + .switch-track::before { left: 19px; background: #8dd8ff; box-shadow: 0 0 9px rgba(100, 200, 255, .8); }
+    .switch input:focus-visible + .switch-track { outline: 2px solid rgba(100, 200, 255, .65); outline-offset: 3px; }
+
+    .explode-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid rgba(100, 200, 255, .44);
+      border-radius: 9px;
+      color: #dff5ff;
+      background: linear-gradient(135deg, rgba(100, 200, 255, .19), rgba(100, 200, 255, .07));
+      box-shadow: inset 0 1px rgba(255, 255, 255, .055), 0 5px 18px rgba(0, 0, 0, .14);
+      cursor: pointer;
+      font: inherit;
+      font-size: 11px;
+      font-weight: 650;
+      letter-spacing: .04em;
+      transition: .2s ease;
+    }
+    .explode-button:hover { border-color: rgba(130, 220, 255, .8); background: rgba(100, 200, 255, .22); box-shadow: 0 0 18px rgba(100, 200, 255, .16); transform: translateY(-1px); }
+    .explode-button:active { transform: translateY(0); }
+    .explode-button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+
+    .panel-footer { padding: 12px 4px 1px; color: #566a78; font-size: 9px; letter-spacing: .08em; text-align: center; text-transform: uppercase; }
+
+    #tooltip {
+      position: fixed;
+      z-index: 5;
+      display: none;
+      max-width: 220px;
+      padding: 8px 10px;
+      border: 1px solid rgba(100, 200, 255, .26);
+      border-radius: 8px;
+      color: #d9eaf3;
+      background: rgba(13, 19, 27, .96);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, .36), 0 0 17px rgba(100, 200, 255, .07);
+      font-size: 10px;
+      line-height: 1.45;
+      pointer-events: none;
+      backdrop-filter: blur(12px);
+    }
+
+    @media (max-width: 480px) {
+      .panel { top: 10px; left: 10px; width: min(300px, calc(100vw - 20px)); max-height: calc(100vh - 20px); }
+      #tooltip { max-width: min(210px, calc(100vw - 24px)); }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; } }
+  </style>
+</head>
+<body>
+
+
+<style>
+  
+  @media (max-width: 768px) {
+    #panel, #controls, #controlPanel, #control-panel, .controls, .sidebar {
+      width: calc(100vw - 32px) !important;
+      max-width: none !important;
+      left: 16px !important;
+      right: 16px !important;
+      max-height: 60vh !important;
+      font-size: 0.85rem !important;
+    }
+  }
+
+  .sim-panel-toggle {
+    display: none;
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    z-index: 9999;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid rgba(100,200,255,0.2);
+    background: rgba(10, 14, 24, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: rgba(200,220,240,0.8);
+    font-size: 1.2rem;
+    cursor: pointer;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+    align-items: center;
+    justify-content: center;
+  }
+  .sim-panel-toggle:active { transform: scale(0.92); }
+
+  @media (max-width: 768px) {
+    
+  .sim-panel-toggle { display: flex; }
+    .panel.panel-hidden { display: none !important; }
+  }
+
+  /* Embed mode: hide toggle + panel */
+  .embed-mode .sim-panel-toggle { display: none !important; }
+  .embed-mode .panel { display: none !important; }
+</style>
+<script>
+  (function() {
+    var isEmbed = new URLSearchParams(location.search).has('embed');
+    if (isEmbed) document.documentElement.classList.add('embed-mode');
+    
+    // Listen for parent show/hide messages
+    window.addEventListener('message', function(e) {
+      if (e.data === 'show-panel') {
+        document.documentElement.classList.remove('embed-mode');
+      } else if (e.data === 'hide-panel') {
+        document.documentElement.classList.add('embed-mode');
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+      var btn = document.createElement('button');
+      btn.className = 'sim-panel-toggle';
+      btn.textContent = isEmbed ? '⚙️' : '✕';
+      btn.title = 'Toggle controls';
+      document.body.appendChild(btn);
+      
+      var panel = document.querySelector('.panel');
+      if (!panel) return;
+      if (!isEmbed) {
+        // Standalone on mobile: panel visible initially
+      }
+      
+      btn.addEventListener('click', function() {
+        panel.classList.toggle('panel-hidden');
+        if (isEmbed) {
+          document.documentElement.classList.toggle('embed-mode');
+        }
+        btn.textContent = panel.classList.contains('panel-hidden') || 
+          document.documentElement.classList.contains('embed-mode') ? '⚙️' : '✕';
+      });
+    });
+  })();
+</script>
+  <canvas id="scene" aria-label="A spinning polygon containing bouncing balls"></canvas>
+
+  <aside class="panel" aria-label="Simulation controls">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">◌</div>
+      <div>
+        <h1 class="brand-title">Orbital</h1>
+        <p class="brand-subtitle">Polygon physics lab</p>
+      </div>
+    </div>
+
+    <section class="section-card">
+      <button class="section-heading" type="button" aria-expanded="true" aria-controls="shape-content"><span>Shape</span><span class="chevron" aria-hidden="true">›</span></button>
+      <div class="section-content" id="shape-content">
+        <div class="control" data-tip="Choose how many edges the spinning frame has.">
+          <div class="control-top"><label for="sides">Sides</label><output class="readout" id="sides-value" for="sides">8</output></div>
+          <input id="sides" type="range" min="3" max="20" step="1" value="8">
+          <div class="shape-name" id="shape-name">Octagon</div>
+        </div>
+        <div class="control" data-tip="Set the frame's rotation speed. Negative values reverse its direction.">
+          <div class="control-top"><label for="spin">Spin Speed</label><output class="readout" id="spin-value" for="spin">0.65</output></div>
+          <input id="spin" type="range" min="-3" max="3" step="0.05" value="0.65">
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card">
+      <button class="section-heading" type="button" aria-expanded="true" aria-controls="balls-content"><span>Balls</span><span class="chevron" aria-hidden="true">›</span></button>
+      <div class="section-content" id="balls-content">
+        <div class="control" data-tip="Set how many balls are inside the frame. Changing the count respawns them.">
+          <div class="control-top"><label for="count">Count</label><output class="readout" id="count-value" for="count">40</output></div>
+          <input id="count" type="range" min="1" max="200" step="1" value="40">
+        </div>
+        <div class="control" data-tip="Choose the maximum extra radius added to each ball's 6 px base size. Changing it respawns the balls.">
+          <div class="control-top"><label for="variation">Size Variation</label><output class="readout" id="variation-value" for="variation">18 px</output></div>
+          <input id="variation" type="range" min="0" max="40" step="1" value="18">
+        </div>
+        <div class="control" data-tip="Set how much speed balls keep after hitting the rotating wall.">
+          <div class="control-top"><label for="bounce">Bounciness</label><output class="readout" id="bounce-value" for="bounce">0.82</output></div>
+          <input id="bounce" type="range" min="0" max="1.2" step="0.01" value="0.82">
+        </div>
+        <div class="control toggle-row" data-tip="Turn ball-to-ball collisions on or off. With this off, balls pass through one another.">
+          <span class="control-label" id="collision-label">Ball Collisions</span>
+          <label class="switch" aria-labelledby="collision-label"><input id="collisions" type="checkbox" checked><span class="switch-track"></span></label>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card">
+      <button class="section-heading" type="button" aria-expanded="true" aria-controls="physics-content"><span>Physics</span><span class="chevron" aria-hidden="true">›</span></button>
+      <div class="section-content" id="physics-content">
+        <div class="control" data-tip="Aim gravity around the compass. 0° points down, then the direction turns clockwise.">
+          <div class="control-top"><label for="gravity-angle">Gravity Angle</label><output class="readout" id="gravity-direction" for="gravity-angle">↓</output></div>
+          <input id="gravity-angle" type="range" min="0" max="360" step="1" value="0">
+        </div>
+        <div class="control" data-tip="Set gravity strength in pixels per second squared. Zero creates a zero-gravity environment.">
+          <div class="control-top"><label for="gravity-strength">Gravity Strength</label><output class="readout" id="gravity-value" for="gravity-strength">650</output></div>
+          <input id="gravity-strength" type="range" min="0" max="1500" step="10" value="650">
+        </div>
+        <div class="control" data-tip="Scale the speed of the simulation. At 0× time stands still; at 3× physics runs three times faster.">
+          <div class="control-top"><label for="time-scale">Time Scale</label><output class="readout" id="time-value" for="time-scale">1.0×</output></div>
+          <input id="time-scale" type="range" min="0" max="3" step="0.1" value="1">
+        </div>
+      </div>
+    </section>
+
+    <section class="section-card">
+      <button class="section-heading" type="button" aria-expanded="true" aria-controls="effects-content"><span>Effects</span><span class="chevron" aria-hidden="true">›</span></button>
+      <div class="section-content" id="effects-content">
+        <div class="control toggle-row" data-tip="Leave fading trails behind moving balls for a longer-exposure look.">
+          <span class="control-label" id="trails-label">Motion Trails</span>
+          <label class="switch" aria-labelledby="trails-label"><input id="trails" type="checkbox"><span class="switch-track"></span></label>
+        </div>
+        <div class="control" data-tip="Give every ball a random burst of speed between 300 and 800 px/s.">
+          <button class="explode-button" id="explode" type="button"><span aria-hidden="true">✦</span> Explode</button>
+        </div>
+      </div>
+    </section>
+
+    <div class="panel-footer">Live physics · 5 substeps</div>
+  </aside>
+
+  <div id="tooltip" role="tooltip"></div>
+  <script src="sim.js" defer></script>
+</body>
+</html>

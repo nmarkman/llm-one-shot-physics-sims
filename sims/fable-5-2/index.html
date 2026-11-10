@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Claude Fable 5.2</title>
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --accent-rgb: 100, 200, 255;
+      --accent: rgb(var(--accent-rgb));
+      --text: #dce8f4;
+      --text-dim: #8696aa;
+      --ease: cubic-bezier(0.4, 0, 0.2, 1);
+      --collapse-time: 0.28s;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #canvas {
+      position: fixed;
+      inset: 0;
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* ── Panel ─────────────────────────────────────────────── */
+
+    .panel {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      z-index: 10;
+      width: 292px;
+      max-width: calc(100vw - 32px);
+      max-height: calc(100vh - 32px);
+      max-height: calc(100dvh - 32px);
+      padding: 12px;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      background: rgba(12, 16, 26, 0.55);
+      -webkit-backdrop-filter: blur(18px) saturate(150%);
+      backdrop-filter: blur(18px) saturate(150%);
+      border: 1px solid rgba(var(--accent-rgb), 0.16);
+      border-radius: 18px;
+      box-shadow:
+        0 18px 50px rgba(0, 0, 0, 0.55),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      scrollbar-width: thin;
+      scrollbar-color: rgba(var(--accent-rgb), 0.3) transparent;
+    }
+
+    .panel::-webkit-scrollbar { width: 8px; }
+    .panel::-webkit-scrollbar-track { background: transparent; }
+    .panel::-webkit-scrollbar-thumb {
+      background: rgba(var(--accent-rgb), 0.28);
+      background-clip: padding-box;
+      border: 2px solid transparent;
+      border-radius: 4px;
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 4px 6px 12px;
+    }
+
+    .panel-head .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.9);
+    }
+
+    .panel-head h1 {
+      margin: 0;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    /* ── Section cards ─────────────────────────────────────── */
+
+    .card {
+      background: rgba(var(--accent-rgb), 0.035);
+      border: 1px solid rgba(var(--accent-rgb), 0.12);
+      border-radius: 12px;
+      transition: border-color 0.2s var(--ease), background-color 0.2s var(--ease);
+    }
+
+    .card + .card { margin-top: 10px; }
+
+    .card:hover {
+      background: rgba(var(--accent-rgb), 0.055);
+      border-color: rgba(var(--accent-rgb), 0.45);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 11px 14px;
+      font: inherit;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: none;
+      border: 0;
+      border-radius: 12px;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .card-header:focus-visible {
+      outline: 2px solid rgba(var(--accent-rgb), 0.8);
+      outline-offset: -2px;
+    }
+
+    .chevron {
+      width: 14px;
+      height: 14px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      opacity: 0.8;
+      transition: transform var(--collapse-time) var(--ease);
+    }
+
+    .card.collapsed .chevron { transform: rotate(-90deg); }
+
+    /* Animate height via a 1fr → 0fr grid row */
+    .card-body {
+      display: grid;
+      grid-template-rows: 1fr;
+      transition: grid-template-rows var(--collapse-time) var(--ease);
+    }
+
+    .card.collapsed .card-body { grid-template-rows: 0fr; }
+
+    .card-body-inner {
+      min-height: 0;
+      overflow: hidden;
+      visibility: visible;
+      transition: visibility 0s;
+    }
+
+    /* Hidden once the collapse finishes, so collapsed controls can't be tabbed to */
+    .card.collapsed .card-body-inner {
+      visibility: hidden;
+      transition: visibility 0s var(--collapse-time);
+    }
+
+    /* ── Controls ──────────────────────────────────────────── */
+
+    .control { padding: 7px 14px 9px; }
+    .card-body-inner > :last-child { padding-bottom: 14px; }
+
+    .control-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .control label,
+    .control-label {
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .value {
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+      color: var(--accent);
+    }
+
+    .value .arrow {
+      display: inline-block;
+      margin-right: 5px;
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    .shape-name {
+      margin-top: 5px;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-align: center;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    /* Sliders */
+    input[type="range"] {
+      --fill: 50%;
+      display: block;
+      width: 100%;
+      height: 18px;
+      margin: 0;
+      background: transparent;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    input[type="range"]:focus { outline: none; }
+
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 4px;
+      border-radius: 2px;
+      background: linear-gradient(
+        to right,
+        rgba(var(--accent-rgb), 0.75) var(--fill),
+        rgba(var(--accent-rgb), 0.14) var(--fill)
+      );
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      width: 14px;
+      height: 14px;
+      margin-top: -5px;
+      background: var(--accent);
+      border: none;
+      border-radius: 50%;
+      box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.75);
+      transition: transform 0.15s var(--ease), box-shadow 0.15s var(--ease);
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    input[type="range"]:hover::-webkit-slider-thumb {
+      transform: scale(1.15);
+      box-shadow: 0 0 14px rgba(var(--accent-rgb), 0.95);
+    }
+
+    input[type="range"]:focus-visible::-webkit-slider-thumb {
+      box-shadow:
+        0 0 0 4px rgba(var(--accent-rgb), 0.25),
+        0 0 14px rgba(var(--accent-rgb), 0.95);
+    }
+
+    input[type="range"]::-moz-range-track {
+      height: 4px;
+      border-radius: 2px;
+      background: linear-gradient(
+        to right,
+        rgba(var(--accent-rgb), 0.75) var(--fill),
+        rgba(var(--accent-rgb), 0.14) var(--fill)
+      );
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      background: var(--accent);
+      border: none;
+      border-radius: 50%;
+      box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.75);
+    }
+
+    input[type="range"]:focus-visible::-moz-range-thumb {
+      box-shadow:
+        0 0 0 4px rgba(var(--accent-rgb), 0.25),
+        0 0 14px rgba(var(--accent-rgb), 0.95);
+    }
+
+    /* Toggle switches */
+    .toggle {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+    }
+
+    .toggle input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: 0;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .switch {
+      position: relative;
+      flex: none;
+      width: 38px;
+      height: 21px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(var(--accent-rgb), 0.25);
+      border-radius: 999px;
+      transition: background-color 0.2s var(--ease), border-color 0.2s var(--ease);
+    }
+
+    .switch::after {
+      content: "";
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 15px;
+      height: 15px;
+      background: #7f8fa3;
+      border-radius: 50%;
+      transition: transform 0.2s var(--ease), background-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+    }
+
+    .toggle input:checked + .switch {
+      background: rgba(var(--accent-rgb), 0.28);
+      border-color: rgba(var(--accent-rgb), 0.7);
+    }
+
+    .toggle input:checked + .switch::after {
+      transform: translateX(17px);
+      background: var(--accent);
+      box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.85);
+    }
+
+    .toggle input:focus-visible + .switch {
+      outline: 2px solid rgba(var(--accent-rgb), 0.8);
+      outline-offset: 2px;
+    }
+
+    /* Action button */
+    .action-btn {
+      width: 100%;
+      padding: 10px 14px;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.2), rgba(var(--accent-rgb), 0.06));
+      border: 1px solid rgba(var(--accent-rgb), 0.45);
+      border-radius: 10px;
+      cursor: pointer;
+      transition:
+        transform 0.12s var(--ease),
+        box-shadow 0.2s var(--ease),
+        border-color 0.2s var(--ease),
+        color 0.2s var(--ease);
+    }
+
+    .action-btn:hover {
+      color: #fff;
+      border-color: rgba(var(--accent-rgb), 0.9);
+      box-shadow:
+        0 0 20px rgba(var(--accent-rgb), 0.35),
+        inset 0 0 12px rgba(var(--accent-rgb), 0.15);
+    }
+
+    .action-btn:active { transform: scale(0.97); }
+
+    .action-btn:focus-visible {
+      outline: 2px solid rgba(var(--accent-rgb), 0.8);
+      outline-offset: 2px;
+    }
+
+    /* ── Tooltip (a real element outside the panel, so the panel's
+          overflow can't clip it; positioned from sim.js) ───── */
+
+    .tooltip {
+      --arrow-y: 50%;
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 100;
+      width: max-content;
+      max-width: 240px;
+      padding: 8px 11px;
+      font-size: 12px;
+      line-height: 1.45;
+      color: var(--text);
+      background: rgb(13, 18, 28);
+      border: 1px solid rgba(var(--accent-rgb), 0.35);
+      border-radius: 8px;
+      box-shadow:
+        0 8px 24px rgba(0, 0, 0, 0.5),
+        0 0 16px rgba(var(--accent-rgb), 0.12);
+      pointer-events: none;
+      opacity: 0;
+      transform: translateX(-4px);
+      transition: opacity 0.15s var(--ease), transform 0.15s var(--ease);
+    }
+
+    .tooltip.visible {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .tooltip::before {
+      content: "";
+      position: absolute;
+      top: var(--arrow-y);
+      left: -5px;
+      width: 8px;
+      height: 8px;
+      margin-top: -4px;
+      background: inherit;
+      border-bottom: 1px solid rgba(var(--accent-rgb), 0.35);
+      border-left: 1px solid rgba(var(--accent-rgb), 0.35);
+      transform: rotate(45deg);
+    }
+
+    .tooltip.no-arrow::before { display: none; }
+  </style>
+</head>
+<body>
+
+
+<style>
+  
+  @media (max-width: 768px) {
+    #panel, #controls, #controlPanel, #control-panel, .controls, .sidebar {
+      width: calc(100vw - 32px) !important;
+      max-width: none !important;
+      left: 16px !important;
+      right: 16px !important;
+      max-height: 60vh !important;
+      font-size: 0.85rem !important;
+    }
+  }
+
+  .sim-panel-toggle {
+    display: none;
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    z-index: 9999;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid rgba(100,200,255,0.2);
+    background: rgba(10, 14, 24, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: rgba(200,220,240,0.8);
+    font-size: 1.2rem;
+    cursor: pointer;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+    align-items: center;
+    justify-content: center;
+  }
+  .sim-panel-toggle:active { transform: scale(0.92); }
+
+  @media (max-width: 768px) {
+    
+  .sim-panel-toggle { display: flex; }
+    #panel.panel-hidden { display: none !important; }
+  }
+
+  /* Embed mode: hide toggle + panel */
+  .embed-mode .sim-panel-toggle { display: none !important; }
+  .embed-mode #panel { display: none !important; }
+</style>
+<script>
+  (function() {
+    var isEmbed = new URLSearchParams(location.search).has('embed');
+    if (isEmbed) document.documentElement.classList.add('embed-mode');
+    
+    // Listen for parent show/hide messages
+    window.addEventListener('message', function(e) {
+      if (e.data === 'show-panel') {
+        document.documentElement.classList.remove('embed-mode');
+      } else if (e.data === 'hide-panel') {
+        document.documentElement.classList.add('embed-mode');
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+      var btn = document.createElement('button');
+      btn.className = 'sim-panel-toggle';
+      btn.textContent = isEmbed ? '⚙️' : '✕';
+      btn.title = 'Toggle controls';
+      document.body.appendChild(btn);
+      
+      var panel = document.querySelector('#panel');
+      if (!panel) return;
+      if (!isEmbed) {
+        // Standalone on mobile: panel visible initially
+      }
+      
+      btn.addEventListener('click', function() {
+        panel.classList.toggle('panel-hidden');
+        if (isEmbed) {
+          document.documentElement.classList.toggle('embed-mode');
+        }
+        btn.textContent = panel.classList.contains('panel-hidden') || 
+          document.documentElement.classList.contains('embed-mode') ? '⚙️' : '✕';
+      });
+    });
+  })();
+</script>
+  <canvas id="canvas"></canvas>
+
+  <aside class="panel" id="panel" aria-label="Simulation controls">
+    <header class="panel-head">
+      <span class="dot" aria-hidden="true"></span>
+      <h1>Polygon Physics</h1>
+    </header>
+
+    <!-- Shape -->
+    <section class="card">
+      <button class="card-header" type="button" aria-expanded="true" aria-controls="sec-shape">
+        <span>Shape</span>
+        <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="card-body" id="sec-shape">
+        <div class="card-body-inner">
+          <div class="control" data-tip="Number of sides on the spinning frame, from a triangle (3) to an icosagon (20). Changing it respawns the balls.">
+            <div class="control-row">
+              <label for="sides">Sides</label>
+              <span class="value" id="sidesValue">8</span>
+            </div>
+            <input type="range" id="sides" min="3" max="20" step="1" value="8" autocomplete="off">
+            <div class="shape-name" id="shapeName">Octagon</div>
+          </div>
+
+          <div class="control" data-tip="How fast the frame rotates, in radians per second. Positive is clockwise; negative spins it in reverse.">
+            <div class="control-row">
+              <label for="spin">Spin Speed</label>
+              <span class="value" id="spinValue">+0.80</span>
+            </div>
+            <input type="range" id="spin" min="-3" max="3" step="0.05" value="0.8" autocomplete="off">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Balls -->
+    <section class="card">
+      <button class="card-header" type="button" aria-expanded="true" aria-controls="sec-balls">
+        <span>Balls</span>
+        <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="card-body" id="sec-balls">
+        <div class="card-body-inner">
+          <div class="control" data-tip="How many balls are in the frame. Changing it respawns the balls.">
+            <div class="control-row">
+              <label for="count">Count</label>
+              <span class="value" id="countValue">40</span>
+            </div>
+            <input type="range" id="count" min="1" max="200" step="1" value="40" autocomplete="off">
+          </div>
+
+          <div class="control" data-tip="Maximum random radius added to each ball's base size of 6. At 0 every ball is identical. Changing it respawns the balls.">
+            <div class="control-row">
+              <label for="sizeVar">Size Variation</label>
+              <span class="value" id="sizeVarValue">14</span>
+            </div>
+            <input type="range" id="sizeVar" min="0" max="40" step="1" value="14" autocomplete="off">
+          </div>
+
+          <div class="control" data-tip="Wall restitution: how much speed a ball keeps when it bounces off the frame. Above 1, every bounce adds energy.">
+            <div class="control-row">
+              <label for="bounce">Bounciness</label>
+              <span class="value" id="bounceValue">0.85</span>
+            </div>
+            <input type="range" id="bounce" min="0" max="1.2" step="0.01" value="0.85" autocomplete="off">
+          </div>
+
+          <label class="control toggle" data-tip="When on, balls bounce off each other with mass-based collisions. When off, they pass straight through one another.">
+            <span class="control-label">Ball Collisions</span>
+            <input type="checkbox" id="collisions" role="switch" checked autocomplete="off">
+            <span class="switch" aria-hidden="true"></span>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- Physics -->
+    <section class="card">
+      <button class="card-header" type="button" aria-expanded="true" aria-controls="sec-physics">
+        <span>Physics</span>
+        <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="card-body" id="sec-physics">
+        <div class="card-body-inner">
+          <div class="control" data-tip="Direction gravity pulls. 0° is down, 90° left, 180° up, 270° right.">
+            <div class="control-row">
+              <label for="gravityAngle">Gravity Angle</label>
+              <span class="value"><span class="arrow" id="gravityArrow">↓</span><span id="gravityAngleValue">0°</span></span>
+            </div>
+            <input type="range" id="gravityAngle" min="0" max="360" step="1" value="0" autocomplete="off">
+          </div>
+
+          <div class="control" data-tip="How hard gravity pulls. Set it to 0 for zero-G.">
+            <div class="control-row">
+              <label for="gravity">Gravity Strength</label>
+              <span class="value" id="gravityValue">800</span>
+            </div>
+            <input type="range" id="gravity" min="0" max="1500" step="10" value="800" autocomplete="off">
+          </div>
+
+          <div class="control" data-tip="Speeds up or slows down the whole simulation. 1× is real time; 0 freezes it.">
+            <div class="control-row">
+              <label for="timeScale">Time Scale</label>
+              <span class="value" id="timeScaleValue">1.00×</span>
+            </div>
+            <input type="range" id="timeScale" min="0" max="3" step="0.05" value="1" autocomplete="off">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Effects -->
+    <section class="card">
+      <button class="card-header" type="button" aria-expanded="true" aria-controls="sec-effects">
+        <span>Effects</span>
+        <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="card-body" id="sec-effects">
+        <div class="card-body-inner">
+          <label class="control toggle" data-tip="Fades the previous frame instead of clearing it, so moving balls leave streaks behind them.">
+            <span class="control-label">Motion Trails</span>
+            <input type="checkbox" id="trails" role="switch" autocomplete="off">
+            <span class="switch" aria-hidden="true"></span>
+          </label>
+
+          <div class="control" data-tip="Kicks every ball in a random direction at a random speed between 300 and 800.">
+            <button class="action-btn" id="explode" type="button">Explode</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </aside>
+
+  <!-- Deliberately a sibling of the panel, not a child: the panel scrolls
+       (overflow-y: auto) and would clip anything positioned inside it. -->
+  <div class="tooltip" id="tooltip" role="tooltip"></div>
+
+  <script src="sim.js"></script>
+</body>
+</html>
